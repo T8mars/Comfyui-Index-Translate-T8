@@ -109,7 +109,7 @@ function preferences(value) {
     glossary: value.glossary,
   };
 }
-async function api(config, path, method = "GET", body) {
+async function api(config, path, method = "GET", body, timeoutMs = 8000) {
   const base = endpoint(config.endpoint);
   const response = await fetch(base + path, {
     method,
@@ -118,7 +118,7 @@ async function api(config, path, method = "GET", body) {
       ...(config.token ? { Authorization: "Bearer " + config.token } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   let value;
   try {
@@ -143,6 +143,135 @@ async function backend(config) {
   if (status.settings.identity !== config.identity)
     throw new Error("服务身份已变化，请重新配对");
   return status;
+}
+
+const audioSessions = new Map();
+
+async function translateVideo(cfg, value) {
+  const text = String(value || "").trim();
+  if (!text || text.length > 1200) throw new Error("视频字幕长度无效");
+  await backend(cfg);
+  const source_hash = await sha(text);
+  const request_id = crypto.randomUUID();
+  const submitted = await api(cfg, "/api/jobs", "POST", {
+    request_id, expected_identity: cfg.identity, page_epoch: "video",
+    ...preferences(cfg), output_budget: 512,
+    paragraphs: [{id: "cue", text, source_hash}],
+  }, 30000);
+  for (let retry = 0; retry < 120; retry++) {
+    const result = await api(cfg, "/api/jobs/" + submitted.id);
+    if (result.status === "completed") {
+      verifyResults(result, [{id: "cue", text, source_hash}]);
+      return {text: result.results[0].text};
+    }
+    if (["failed", "cancelled"].includes(result.status))
+      throw new Error(result.error || "视频字幕翻译失败");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw new Error("视频字幕翻译等待超时");
+}
+
+async function ensureOffscreen() {
+  if (!(await chrome.offscreen.hasDocument())) {
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["USER_MEDIA", "AUDIO_PLAYBACK"],
+      justification: "用户主动启用视频翻译时采集当前标签页声音，在本地识别并继续播放原声音频",
+    });
+  }
+}
+
+async function audioStop(tabId) {
+  const session = audioSessions.get(tabId);
+  audioSessions.delete(tabId);
+  try { await chrome.runtime.sendMessage({type:"OFFSCREEN_STOP",tabId}); } catch {}
+  if (session?.sid) {
+    try { await api(session.cfg, `/api/speech/${encodeURIComponent(session.sid)}/cancel`, "POST", {}, 30000); }
+    catch {}
+  }
+}
+
+async function sendSpeech(tabId, events, session) {
+  for (const event of events || []) {
+    if (!event.segment_final && !event.final) {
+      const preview = String(event.preview_text || "");
+      const text = (preview.startsWith(session.committed)
+        ? preview.slice(session.committed.length) : preview).trim().slice(-300);
+      if (text && text !== session.lastPreview) {
+        session.lastPreview = text;
+        try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH_PREVIEW",source:text}); }
+        catch { await audioStop(tabId); }
+      }
+      continue;
+    }
+    const stable = String(event.stable_text || "");
+    if (!stable.startsWith(session.committed)) session.committed = "";
+    const text = stable.slice(session.committed.length).trim();
+    session.committed = stable;
+    session.lastPreview = "";
+    if (text) {
+      try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:text}); }
+      catch { await audioStop(tabId); }
+    }
+  }
+}
+
+async function audioFeed(tabId, value) {
+  const session = audioSessions.get(tabId);
+  if (!session?.sid) return {};
+  if (!Number.isInteger(value.samples) || value.samples < 1 || value.samples > 32000 ||
+      typeof value.pcm_f32le_b64 !== "string" || value.pcm_f32le_b64.length > 180000)
+    throw new Error("无效的音频帧");
+  const current = session;
+  current.queue = current.queue.then(async () => {
+    if (audioSessions.get(tabId) !== current) return;
+    const result = await api(current.cfg, `/api/speech/${encodeURIComponent(current.sid)}/feed`, "POST", {
+      seq: current.seq, start_sample: current.samples,
+      pcm_f32le_b64: value.pcm_f32le_b64,
+    }, 180000);
+    current.seq++;
+    current.samples += value.samples;
+    if (audioSessions.get(tabId) !== current) return;
+    await sendSpeech(tabId, result.events, current);
+    if (current.samples >= 9 * 60 * 16000) {
+      const final = await api(current.cfg, `/api/speech/${encodeURIComponent(current.sid)}/finish`, "POST", {
+        last_seq: current.seq - 1, total_samples: current.samples,
+      }, 180000);
+      await sendSpeech(tabId, final.events, current);
+      const next = await api(current.cfg, "/api/speech/start", "POST", {}, 180000);
+      current.sid = next.session_id;
+      current.seq = current.samples = 0;
+      current.committed = "";
+    }
+  });
+  try { await current.queue; return {}; }
+  catch (error) {
+    await audioStop(tabId);
+    try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    throw error;
+  }
+}
+
+async function audioStart(tabId, streamId, cfg) {
+  for (const id of [...audioSessions.keys()]) await audioStop(id);
+  await ensureOffscreen();
+  const started = await chrome.runtime.sendMessage({type:"OFFSCREEN_CAPTURE",tabId,streamId});
+  if (!started?.ok) throw new Error(started?.error || "标签页音频采集失败");
+  const session = {cfg, sid:null, seq:0, samples:0, committed:"", lastPreview:"", queue:Promise.resolve()};
+  audioSessions.set(tabId, session);
+  try {
+    const status = await backend(cfg);
+    if (!status.capabilities?.includes("speech_r2t2_v1"))
+      throw new Error("请升级独立整合包，安装 R2T2 语音组件");
+    const result = await api(cfg, "/api/speech/start", "POST", {}, 180000);
+    if (audioSessions.get(tabId) !== session) return;
+    session.sid = result.session_id;
+    await chrome.runtime.sendMessage({type:"OFFSCREEN_READY",tabId});
+    await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:"正在识别视频声音…"});
+  } catch (error) {
+    await audioStop(tabId);
+    try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+  }
 }
 function ui(sender) {
   return (
@@ -519,7 +648,27 @@ async function recoverSubmission(key, info, cfg, tabId) {
 }
 async function handle(message, sender) {
   if (sender.id !== chrome.runtime.id) throw new Error("无效的消息来源");
+  if (message.type === "VIDEO_CAPTURE_ID" && ui(sender)) {
+    if (!Number.isInteger(message.tabId)) throw new Error("无效的标签页");
+    return {streamId: await chrome.tabCapture.getMediaStreamId({targetTabId:message.tabId})};
+  }
   const cfg = await config();
+  if (message.type === "VIDEO_TRANSLATE" && page(sender))
+    return translateVideo(cfg, message.text);
+  if (message.type === "VIDEO_AUDIO_STOP_PAGE" && page(sender)) {
+    await audioStop(sender.tab.id);
+    return {};
+  }
+  if (message.type === "VIDEO_PCM" &&
+      sender.url === chrome.runtime.getURL("offscreen.html"))
+    return audioFeed(message.tabId, message);
+  if (message.type === "VIDEO_CAPTURE_ENDED" &&
+      sender.url === chrome.runtime.getURL("offscreen.html")) {
+    await audioStop(message.tabId);
+    try { await chrome.tabs.sendMessage(message.tabId, {
+      type:"IT_VIDEO_SPEECH",source:"",note:message.reason || "视频声音采集已结束"}); } catch {}
+    return {};
+  }
   if (message.type === "PUBLIC" && page(sender)) {
     const origin = new URL(sender.url).origin;
     await sessionTrusted;
@@ -615,6 +764,20 @@ async function handle(message, sender) {
     return {};
   }
   if (!ui(sender)) throw new Error("该操作只允许扩展设置页面使用");
+  if (message.type === "VIDEO_AUDIO_START") {
+    if (!Number.isInteger(message.tabId) || typeof message.streamId !== "string" ||
+        !message.streamId || message.streamId.length > 4096 || /[\x00-\x1f]/.test(message.streamId))
+      throw new Error("无效的标签页音频授权");
+    audioStart(message.tabId, message.streamId, cfg).catch(async error => {
+      try { await chrome.tabs.sendMessage(message.tabId, {
+        type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    });
+    return {starting:true};
+  }
+  if (message.type === "VIDEO_AUDIO_STOP") {
+    await audioStop(message.tabId);
+    return {stopped:true};
+  }
   if (message.type === "CONFIG") {
     const { token, ...publicConfig } = cfg;
     return { ...publicConfig, paired: !!token };
@@ -712,10 +875,11 @@ chrome.runtime.onStartup.addListener(() => {
 });
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   await cancelTab(tabId);
+  await audioStop(tabId);
   await chrome.storage.session.remove("page:" + tabId);
 });
 chrome.tabs.onUpdated.addListener((tabId, change) => {
-  if (change.status === "loading") cancelTab(tabId);
+  if (change.status === "loading") { cancelTab(tabId); audioStop(tabId); }
 });
 chrome.permissions.onRemoved.addListener(async () => {
   const cfg = await config();

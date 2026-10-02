@@ -4,6 +4,8 @@
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。启动时每天最多检查一次 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases) 并自动安装较新的代码包；网络不可用时照常启动。更新只覆盖应用代码，保留 `runtime/`、`models/` 和 `data/`。运行中的服务不会被更新打断；可先执行 `stop.cmd`，再运行 `update.cmd` 立即检查并安装。版本升级如需改变 Python 依赖，请获取作者另行分享的新完整包。
 
+0.1.13 完整离线包新增独立的 R2T2 流式语音 worker、语音权重和 CUDA 原生库，为 Chrome 扩展的无字幕视频提供本机转写；已有字幕的视频仍使用 Index-Translate 翻译。该 worker 随本整合包自带，不连接 ComfyUI。语音组件使用额外依赖和约 2.19 GB 权重，因此 **从 0.1.12 升级必须下载新的完整离线包**；旧包的代码自动更新会检测依赖变化并拒绝只替换代码。预编译语音库已在 Windows 11 / RTX 5090 Laptop 验证，其他 GPU 尚未实测。语音模型许可见 `speech/models/Confucius4-R2T2-GGUF/MODEL_LICENSE`；原生库、VAD 与源码许可见 `speech/README.md`。
+
 0.1.9 在「选择本地模型」中增加「选择文件夹」按钮，可直接选择任意磁盘上的完整 2B / 9B 模型目录；选择后保存设置即可使用。模型仓库的文件夹已经是 `Index-Translate-2B` / `Index-Translate-9B`，下载后无需改名。
 
 0.1.10 与 Chrome 扩展的进度及网页排版修复同步；本地推理服务协议未变。

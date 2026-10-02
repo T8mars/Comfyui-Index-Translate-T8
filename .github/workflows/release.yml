@@ -39,7 +39,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Code-only update. Install models from https://huggingface.co/t8star/Index-Translate-Comfy/tree/main. Windows complete offline bundle is shared separately."
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome now translates HTML5 subtitle tracks and can stream tab audio to the standalone R2T2 worker for videos without readable subtitles. Audio mode requires the new complete Windows offline bundle with speech weights and dependencies; the Windows code ZIP cannot add them to an older bundle. Index-Translate model files remain at https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
 
   registry:
     needs: release

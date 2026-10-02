@@ -4,8 +4,8 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。扩展会在安装、浏览器启动以及每天自动检查 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest)，发现新版时显示 `NEW` 徽标，设置页可手动检查。Chrome 不允许「加载已解压」的扩展自行替换程序文件；收到提示后下载新版 ZIP、覆盖解压文件夹，再到扩展页点击「重新加载」。
 
-1. 先解压 GitHub Release 的 `IndexTranslate-Chrome-v0.1.12.zip`，或本工作区的 `IndexTranslate-Chrome-0.1.12.zip`，找到直接包含 `manifest.json` 的文件夹。GitHub Release ZIP 的文件直接位于解压目录；本工作区 ZIP 另有 `chrome_index_translate` 外层目录。不要在 Chrome 中选择 `.zip` 文件。
-2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.12-unpacked`，可直接选择该文件夹。
+1. 先解压 GitHub Release 的 `IndexTranslate-Chrome-v0.1.13.zip`，或本工作区的 `IndexTranslate-Chrome-0.1.13.zip`，找到直接包含 `manifest.json` 的文件夹。GitHub Release ZIP 的文件直接位于解压目录；本工作区 ZIP 另有 `chrome_index_translate` 外层目录。不要在 Chrome 中选择 `.zip` 文件。
+2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.13-unpacked`，可直接选择该文件夹。
 3. 在整合包 Chrome 配对页生成配对码；在扩展设置输入本机服务地址和一次性配对码。
 4. 打开网页点击扩展，可手动翻译，或勾选「自动翻译这个站点」并授予该站点权限。
 
@@ -13,13 +13,19 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 
 网页中会显示蒂芙尼蓝色的「译」悬浮按钮。可拖动到方便的位置，扩展会记住位置；单击可翻译当前页面并打开进度面板，面板可收起，也可停止、还原或重试。已授权站点即使关闭自动翻译，悬浮按钮仍会保留，供手动点击；未授予站点权限时，从扩展菜单手动翻译也会在当前页面显示按钮。
 
+## HTML5 视频翻译（0.1.13）
+
+先运行含 R2T2 语音组件的 **0.1.13 完整离线 Windows 整合包** 并完成配对，然后打开视频所在标签页，点击扩展菜单的「视频翻译」。扩展优先读取该视频提供的标准 HTML5 `TextTrack` 字幕，在画面下缘显示原文与译文；没有标准字幕轨时，Chrome 在用户点击后采集当前标签页声音，独立整合包中的 R2T2 worker 流式识别，再交由 Index-Translate 翻译。播放器存在空字幕轨、自定义字幕无法读取时，可点击「直接识别声音」强制走音频路径。识别过程中先显示临时转写，语音段落结束后显示译文。点击「停止视频翻译」立即停止采集并恢复原生字幕显示。标签页音频仅送至本机 `127.0.0.1` 服务，不写入音频文件；采集期间扩展把原声接回系统扬声器。
+
+这是针对普通 HTTP/HTTPS 页面的通用 HTML5 视频路径，含第三方播放器 iframe 时可用标签页音频后备。更新扩展后 Chrome 会显示新增的标签页音频采集权限；采集仅在你点击视频翻译入口后启动。播放器自己绘制的字幕不能直接读取，会走音频识别。浏览器受保护播放、某些播放器全屏覆盖层、无声音轨及静音视频可能无法显示或识别。R2T2 预编译 CUDA 语音组件目前在 Windows 11 / RTX 5090 Laptop 上验证，其他显卡尚未实测。此版本新增 Python 依赖与约 2.19 GB 语音权重，旧 Windows 整合包仅靠 GitHub 代码更新无法启用语音模式；需要新的完整包。
+
 0.1.12 将悬浮按钮缩至 36 × 36 像素，只保留「译」字；进度仍可在展开面板中查看。
 
 0.1.11 将扩展名称统一为「T8 Index Translate 本地网页翻译」，新增可拖动、可收起的网页悬浮翻译按钮。此更新与 0.1.10 Windows 本地服务兼容。
 
 设置支持 14 种常用目标语言、自动原文检测、JSON 术语表与视口优先。目标语言须明确。后台短任务协议持久保存任务 ID，避免长时间等待单次模型 HTTP 响应。缓存按服务身份、模型版本、推理精度、语言、提示词和术语区分，并使用逐条 IndexedDB 事务写入。
 
-只支持普通 HTTP/HTTPS 顶层网页正文；Chrome 内部页面、PDF 阅读器、iframe、Shadow DOM、表单编辑内容及图片内文字不在当前范围。原文和译文仅保存在本机；设置页可清空译文缓存，整合包可撤销配对。翻译失败时保留原文并提示重试，预算截断或占位符异常不会被当作完整译文插入。
+正文翻译只支持普通 HTTP/HTTPS 顶层网页；Chrome 内部页面、PDF 阅读器、iframe、Shadow DOM、表单编辑内容及图片内文字不在正文翻译范围。视频模式可用标签页音频覆盖 iframe 播放器。原文和译文仅保存在本机；设置页可清空译文缓存，整合包可撤销配对。翻译失败时保留原文并提示重试，预算截断或占位符异常不会被当作完整译文插入。
 
 扩展只连接 `http://127.0.0.1:<端口>` 或 `http://localhost:<端口>`，配对凭据不向内容脚本暴露。扩展无需 Chrome 商店账户，当前交付为可加载的解压包。默认服务地址为 http://127.0.0.1:8098。
 

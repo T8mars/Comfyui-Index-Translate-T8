@@ -74,6 +74,38 @@ $("restore").addEventListener("click", async () => {
     tell(error.message, true);
   }
 });
+async function startVideo(forceSpeech = false) {
+  try {
+    if (!tab || !/^https?:\/\//.test(tab.url))
+      throw new Error("请选择含 HTML5 视频的普通网页");
+    await preferences();
+    await chrome.scripting.executeScript({target:{tabId:tab.id},files:["video.js"]});
+    const result = await chrome.tabs.sendMessage(tab.id,{type:"IT_VIDEO_START",forceSpeech});
+    if (result.mode === "none") throw new Error(result.reason);
+    if (result.mode === "speech") {
+      // The opaque capture ID expires quickly; consume it in the offscreen document now.
+      const {streamId} = await message({type:"VIDEO_CAPTURE_ID",tabId:tab.id});
+      await message({type:"VIDEO_AUDIO_START",tabId:tab.id,streamId});
+      tell("正在加载本地 R2T2 语音模型，随后识别并翻译当前视频声音。");
+    } else tell("已开始翻译视频字幕轨。");
+  } catch (error) {
+    if (tab) {
+      try { await message({type:"VIDEO_AUDIO_STOP",tabId:tab.id}); } catch {}
+      try { await chrome.tabs.sendMessage(tab.id,{type:"IT_VIDEO_STOP"}); } catch {}
+    }
+    tell(error.message,true);
+  }
+}
+$("video").addEventListener("click", () => startVideo(false));
+$("video-speech").addEventListener("click", () => startVideo(true));
+$("video-stop").addEventListener("click", async () => {
+  try {
+    if (!tab) return;
+    await message({type:"VIDEO_AUDIO_STOP",tabId:tab.id});
+    try { await chrome.tabs.sendMessage(tab.id,{type:"IT_VIDEO_STOP"}); } catch {}
+    tell("视频翻译已停止，标签页声音恢复正常播放。");
+  } catch (error) { tell(error.message,true); }
+});
 $("auto").addEventListener("change", async () => {
   try {
     if (!tab || !/^https?:\/\//.test(tab.url))

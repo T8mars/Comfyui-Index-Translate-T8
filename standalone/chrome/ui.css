@@ -78,6 +78,7 @@ button:disabled {
 .row > * {
   flex: 1;
 }
+.hint { margin: -7px 0 12px; font-size: 12px; }
 .check {
   display: flex;
   align-items: center;

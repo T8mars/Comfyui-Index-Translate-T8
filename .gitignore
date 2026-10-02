@@ -8,3 +8,5 @@ dist/
 standalone/windows/data/
 standalone/windows/models/
 standalone/windows/runtime/
+standalone/windows/speech/models/
+standalone/windows/speech/.runtime/

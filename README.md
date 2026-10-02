@@ -18,6 +18,8 @@
 
 [Windows 代码与说明](https://github.com/T8mars/Comfyui-Index-Translate-T8/tree/main/standalone/windows)在 `standalone/windows`。完整离线整合包由作者另外分享；GitHub Release 的 Windows ZIP 仅用于给已有整合包更新代码，保留用户的 `runtime/`、`models/`、`data/`。Chrome 扩展 ZIP 解压后，在 `chrome://extensions` 开启开发者模式，选择**直接包含 `manifest.json` 的文件夹**并配对本地服务；不能选择 ZIP 文件。详情见 [Chrome 说明](https://github.com/T8mars/Comfyui-Index-Translate-T8/tree/main/standalone/chrome)。
 
+0.1.13 的 Chrome 扩展增加 HTML5 视频翻译：优先翻译标准字幕轨；无标准字幕时，点击扩展后采集当前标签页声音，交给 Windows 整合包内独立的 R2T2 流式语音 worker 识别，再用 Index-Translate 翻译。语音模型、原生库和新 Python 依赖只在新完整离线包中提供，**旧包不能通过 GitHub 的代码 ZIP 单独升级出语音能力**。ComfyUI 节点与 Windows 整合包仍各自独立推理。
+
 ## 项目与作者
 
 By **T8star-Aix**。这是社区集成，模型及原项目版权属于 IndexTeam / bilibili；详见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。模型文件在 Hugging Face 保留官方文件和模型卡。

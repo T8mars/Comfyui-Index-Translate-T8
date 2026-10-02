@@ -18,6 +18,8 @@ Nodes installed through ComfyUI Manager/Registry can be updated through Manager.
 
 The [Windows source and instructions](https://github.com/T8mars/Comfyui-Index-Translate-T8/tree/main/standalone/windows) are in `standalone/windows`. The author distributes the complete offline bundle separately. The Windows ZIP in GitHub Releases updates code in an existing bundle while preserving its `runtime/`, `models/`, and `data/`. For Chrome, extract the extension ZIP, enable Developer mode at `chrome://extensions`, select the **folder directly containing `manifest.json`**, and pair it with the local service. Do not select the ZIP. See the [Chrome guide](https://github.com/T8mars/Comfyui-Index-Translate-T8/tree/main/standalone/chrome).
 
+Version 0.1.13 adds HTML5 video translation. The extension translates standard subtitle tracks; when none is available, a user click starts tab-audio capture, streams speech to a standalone R2T2 worker in the Windows bundle, and translates finalized speech segments. This requires the new complete offline bundle with its speech weights, native library, and Python dependencies. A code-only GitHub ZIP cannot add speech support to an older bundle. The ComfyUI node remains independent of the Windows bundle.
+
 ## Credits and links
 
 By **T8star-Aix**. This is an independent community integration; the original project and model credits belong to IndexTeam / bilibili. See [NOTICE](NOTICE) and [LICENSE](LICENSE). The Hugging Face model mirror retains the upstream files and cards.

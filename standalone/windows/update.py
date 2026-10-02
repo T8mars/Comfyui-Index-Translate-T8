@@ -22,7 +22,7 @@ DATA = ROOT / "data"
 VERSION = ROOT / "VERSION"
 RELEASE_API = "https://api.github.com/repos/T8mars/Comfyui-Index-Translate-T8/releases/latest"
 MAX_ARCHIVE = 50 * 1024 * 1024
-ALLOWED_DIRS = {"app", "web", "_vendor"}
+ALLOWED_DIRS = {"app", "web", "_vendor", "speech"}
 ALLOWED_FILES = {
     "VERSION", "run.py", "launcher.py", "process_lock.py", "update.py", "update.cmd",
     "start.cmd", "stop.cmd", "diagnose.cmd", "README.zh-CN.md", "requirements.lock.txt",

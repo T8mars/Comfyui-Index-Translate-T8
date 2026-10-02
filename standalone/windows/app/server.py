@@ -24,6 +24,7 @@ from index_translate_core.inference import hardware, PROMPT_VERSION
 from index_translate_core.models import catalog, inspect_model
 from .state import State
 from .folder_picker import choose_directory
+from .speech_service import SpeechSessions
 
 
 class StrictModel(BaseModel):
@@ -80,16 +81,30 @@ class Download(StrictModel):
     source: str = Field(default="modelscope", pattern=r"^(modelscope|huggingface)$")
 
 
+class SpeechFeed(StrictModel):
+    seq: int = Field(ge=0)
+    start_sample: int = Field(ge=0)
+    pcm_f32le_b64: str = Field(min_length=4, max_length=180000)
+
+
+class SpeechFinish(StrictModel):
+    last_seq: int = Field(ge=-1)
+    total_samples: int = Field(ge=0)
+
+
 def create_app(root=ROOT, state=None, port=8098):
     state = state or State(Path(root))
+    speech = SpeechSessions(Path(root))
     origins = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
     hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
     @asynccontextmanager
     async def lifespan(app):
         yield
+        speech.close()
         state.close()
     app = FastAPI(title="Index Translate Local", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.service = state
+    app.state.speech = speech
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, error):
         return Response(json.dumps({"detail": jsonable_encoder(error.errors())}, ensure_ascii=True),
@@ -138,6 +153,16 @@ def create_app(root=ROOT, state=None, port=8098):
             return "webui"
         raise HTTPException(401, "请从本机整合包界面配对")
 
+    def speech_call(action):
+        try:
+            return action()
+        except PermissionError as error:
+            raise HTTPException(403, str(error)) from error
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from error
+        except RuntimeError as error:
+            raise HTTPException(503, str(error)) from error
+
     @app.get("/")
     def index(request: Request):
         if request.headers.get("sec-fetch-site") == "cross-site":
@@ -155,7 +180,8 @@ def create_app(root=ROOT, state=None, port=8098):
         client(request)
         with state.lock:
             return {"service_ready": True, "model_ready": state.translator is not None,
-                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1"],
+                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1"] +
+                    (["speech_r2t2_v1"] if speech.available else []),
                     "busy": state.worker_busy, "settings": state.public_settings(), "download": dict(state.download),
                     "cleanup_error": state.cleanup_error,
                     "prompt_version": PROMPT_VERSION, "revision": catalog()[state.config["model_id"]]["revision"]}
@@ -258,10 +284,32 @@ def create_app(root=ROOT, state=None, port=8098):
     def unload(request: Request):
         client(request, ui_only=True)
         try:
+            speech.close()
             state.unload()
             return {"model_ready": False}
         except ValueError as error:
             raise HTTPException(409, str(error))
+
+    @app.post("/api/speech/start")
+    def speech_start(request: Request):
+        owner = client(request)
+        return speech_call(lambda: speech.start(owner))
+
+    @app.post("/api/speech/{sid}/feed")
+    def speech_feed(sid: str, value: SpeechFeed, request: Request):
+        owner = client(request)
+        return speech_call(lambda: speech.feed(owner, sid, value.seq,
+                           value.start_sample, value.pcm_f32le_b64))
+
+    @app.post("/api/speech/{sid}/finish")
+    def speech_finish(sid: str, value: SpeechFinish, request: Request):
+        owner = client(request)
+        return speech_call(lambda: speech.finish(owner, sid, value.last_seq, value.total_samples))
+
+    @app.post("/api/speech/{sid}/cancel")
+    def speech_cancel(sid: str, request: Request):
+        owner = client(request)
+        return speech_call(lambda: speech.cancel(owner, sid))
 
     @app.post("/api/download")
     def download(value: Download, request: Request):
