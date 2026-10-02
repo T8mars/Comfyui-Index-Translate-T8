@@ -82,7 +82,7 @@ class Service:
                     del self.sessions[sid]
 
     async def load(self, config: dict) -> dict:
-        allowed = {"n_ctx", "n_batch", "n_threads", "gpu_layers"}
+        allowed = {"n_ctx", "n_batch", "n_threads", "gpu_layers", "model_dir"}
         if set(config) - allowed:
             raise ValueError("Unknown model setting")
         normalized = {
@@ -91,6 +91,11 @@ class Service:
             "n_threads": int(config.get("n_threads", 8)),
             "gpu_layers": int(config.get("gpu_layers", -1)),
         }
+        if "model_dir" in config:
+            path = Path(config["model_dir"])
+            if not path.is_absolute():
+                raise ValueError("Speech model directory must be absolute")
+            normalized["model_dir"] = str(path.resolve(strict=True))
         if not 2048 <= normalized["n_ctx"] <= 32768 or not 256 <= normalized["n_batch"] <= 4096:
             raise ValueError("Invalid native context or batch size")
         if not 1 <= normalized["n_threads"] <= 64 or not -1 <= normalized["gpu_layers"] <= 99:

@@ -5,8 +5,14 @@ from __future__ import annotations
 import base64
 import binascii
 import importlib
+import json
 import threading
 from pathlib import Path
+
+from .state import atomic_json
+
+DEFAULT_MODEL_PATH = "speech/models/Confucius4-R2T2-GGUF"
+MODEL_FILES = ("Confucius4-R2T2-Q8_0.gguf", "mmproj-Confucius4-R2T2-Q8_0.gguf")
 
 
 class SpeechSessions:
@@ -15,32 +21,79 @@ class SpeechSessions:
         self._lock = threading.RLock()
         self._owners: dict[str, str] = {}
         self._manager = None
+        self.settings_path = self.root / "data/speech-settings.json"
+        try:
+            settings = json.loads(self.settings_path.read_text("utf-8"))
+            self.model_path = settings["model_path"]
+            if not isinstance(self.model_path, str) or not self.model_path.strip():
+                raise ValueError("无效的语音模型路径")
+        except FileNotFoundError:
+            self.model_path = DEFAULT_MODEL_PATH
+        except (ValueError, KeyError, TypeError):
+            self.model_path = DEFAULT_MODEL_PATH
+
+    def resolve_model(self, value: str | None = None) -> Path:
+        path = Path(value if value is not None else self.model_path).expanduser()
+        path = path.resolve() if path.is_absolute() else (self.root / path).resolve()
+        # Accept the original R2T2 project, its models folder, or the pair's folder.
+        candidates = (path, path / "Confucius4-R2T2-GGUF", path / "models/Confucius4-R2T2-GGUF")
+        return next((p for p in candidates if all((p / name).is_file() for name in MODEL_FILES)), path)
+
+    def settings(self):
+        with self._lock:
+            return {"model_path": self.model_path, "resolved_path": str(self.resolve_model()),
+                    "available": self.available, "active": bool(self._owners)}
+
+    def verify(self, value: str | None = None, *, hash_files: bool = True):
+        directory = self.resolve_model(value)
+        try:
+            native = importlib.import_module("speech.r2t2_core.native")
+            model, projector = native.verify_pair(directory, hash_files=hash_files)
+        except (OSError, ValueError) as error:
+            raise ValueError("语音模型目录需包含完整的官方 Q8 主模型和 mmproj 文件：" + str(error)) from error
+        return {"path": str(directory), "files": [model.name, projector.name], "verified": hash_files}
+
+    def configure(self, value: str):
+        # Validate before committing; a failed edit preserves the working configuration.
+        info = self.verify(value, hash_files=False)
+        directory = Path(info["path"])
+        if not Path(value).expanduser().is_absolute() and directory.is_relative_to(self.root):
+            saved = directory.relative_to(self.root).as_posix()
+        else:
+            saved = str(directory)
+        with self._lock:
+            if self._owners:
+                raise RuntimeError("请先停止视频语音翻译，再修改语音模型路径")
+            self.settings_path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_json(self.settings_path, {"model_path": saved})
+            if self.model_path != saved:
+                self.close()
+            self.model_path = saved
+            return self.settings()
 
     @property
     def available(self) -> bool:
         base = self.root / "speech"
-        return all((base / item).is_file() for item in (
-            "models/Confucius4-R2T2-GGUF/Confucius4-R2T2-Q8_0.gguf",
-            "models/Confucius4-R2T2-GGUF/mmproj-Confucius4-R2T2-Q8_0.gguf",
+        return all((self.resolve_model() / name).is_file() for name in MODEL_FILES) and all((base / item).is_file() for item in (
             "models/FireRedVAD-ONNX/fireredvad_stream_vad_with_cache.onnx",
             ".runtime/build-native-cu128/python/Release/qwen3asr_native.cp312-win_amd64.pyd",
         ))
 
     def manager(self):
         if not self.available:
-            raise RuntimeError("整合包缺少 R2T2 语音模型或原生库")
+            raise RuntimeError("R2T2 语音模型或原生库未就绪，请在模型设置中选择已有语音模型目录")
         with self._lock:
             if self._manager is None:
                 self._manager = importlib.import_module("speech.bridge").manager
             return self._manager
 
     def start(self, owner: str):
-        result = self.manager().start_live({}, {
-            "language": "Auto", "context": "", "stream_chunk_ms": 320,
-            "min_segment_seconds": 4,
-        })
-        sid = result["session_id"]
         with self._lock:
+            result = self.manager().start_live({"model_dir": str(self.resolve_model())}, {
+                "language": "Auto", "context": "", "stream_chunk_ms": 320,
+                "min_segment_seconds": 4,
+            })
+            sid = result["session_id"]
             self._owners[sid] = owner
         return {"session_id": sid, "sample_rate": result["sample_rate"]}
 

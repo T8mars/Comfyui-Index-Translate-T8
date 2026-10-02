@@ -20,6 +20,8 @@ The [Windows source and instructions](https://github.com/T8mars/Comfyui-Index-Tr
 
 Version 0.1.13 adds HTML5 video translation. The extension translates standard subtitle tracks; when none is available, a user click starts tab-audio capture, streams speech to a standalone R2T2 worker in the Windows bundle, and translates finalized speech segments. This requires the new complete offline bundle with its speech weights, native library, and Python dependencies. A code-only GitHub ZIP cannot add speech support to an older bundle. The ComfyUI node remains independent of the Windows bundle.
 
+Version 0.1.14 lets the standalone bundle open existing R2T2 Q8 GGUF files directly, without copying them. Under Models and devices → Video speech recognition, select the original project, its models directory, or the folder containing the official decoder and projector. The path persists in data/speech-settings.json across restarts and code updates. The separately shared reuse-ASR runtime bundle omits approximately 2.19 GB of speech weights. It reuses the streaming implementation from [the existing R2T2 project](https://github.com/T8mars/comfyui-confucius-r2t2-t8) and runs independently of ComfyUI.
+
 ## Credits and links
 
 By **T8star-Aix**. This is an independent community integration; the original project and model credits belong to IndexTeam / bilibili. See [NOTICE](NOTICE) and [LICENSE](LICENSE). The Hugging Face model mirror retains the upstream files and cards.

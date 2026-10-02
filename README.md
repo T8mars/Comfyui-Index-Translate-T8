@@ -20,6 +20,8 @@
 
 0.1.13 的 Chrome 扩展增加 HTML5 视频翻译：优先翻译标准字幕轨；无标准字幕时，点击扩展后采集当前标签页声音，交给 Windows 整合包内独立的 R2T2 流式语音 worker 识别，再用 Index-Translate 翻译。语音模型、原生库和新 Python 依赖只在新完整离线包中提供，**旧包不能通过 GitHub 的代码 ZIP 单独升级出语音能力**。ComfyUI 节点与 Windows 整合包仍各自独立推理。
 
+0.1.14 可以在整合包「模型与设备 → 视频语音识别」中选择已有 R2T2 模型目录，直接读取两个官方 Q8 GGUF 文件，不复制模型。可选原 R2T2 项目根目录、models 或 GGUF 文件夹，目录无需改名；路径保存到 data/speech-settings.json，重启与代码更新后保留。已有语音模型可使用作者另行分享的 reuse-ASR 运行包，省去约 2.19 GB 语音权重。流式语音处理复用了 [你们已有的 R2T2 项目](https://github.com/T8mars/comfyui-confucius-r2t2-t8)；原项目和 ComfyUI 都不需要启动。
+
 ## 项目与作者
 
 By **T8star-Aix**。这是社区集成，模型及原项目版权属于 IndexTeam / bilibili；详见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。模型文件在 Hugging Face 保留官方文件和模型卡。

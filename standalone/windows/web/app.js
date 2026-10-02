@@ -333,6 +333,44 @@ $("browse-model-path").addEventListener("click", async () => {
     button.disabled = false;
   }
 });
+function speechStatus(value) {
+  $("speech-model-status").textContent = value.active ? "正在识别视频声音；停止后可修改路径。"
+    : value.available ? "语音模型已就绪；启动视频翻译时直接读取此目录。"
+    : "语音模型未就绪，请选择已有 R2T2 模型目录。";
+}
+$("browse-speech-path").addEventListener("click", async () => {
+  const button = $("browse-speech-path");
+  button.disabled = true;
+  try {
+    const result = await post("/api/speech/model-directory/pick");
+    if (result.path) {
+      $("speech-model-path").value = result.path;
+      notice("已选择语音模型目录；点击“保存语音模型路径”后生效。");
+    }
+  } catch (error) { notice(error.message, true); }
+  finally { button.disabled = false; }
+});
+$("save-speech").addEventListener("click", async () => {
+  const button = $("save-speech");
+  button.disabled = true;
+  try {
+    const result = await post("/api/speech/settings", {model_path: $("speech-model-path").value});
+    $("speech-model-path").value = result.model_path;
+    speechStatus(result);
+    notice("语音模型路径已保存，将直接复用文件，不复制模型。");
+  } catch (error) { notice(error.message, true); }
+  finally { button.disabled = false; }
+});
+$("verify-speech").addEventListener("click", async () => {
+  const button = $("verify-speech");
+  button.disabled = true;
+  notice("正在校验两个语音模型的 SHA256…");
+  try {
+    await post("/api/speech/verify", {model_path: $("speech-model-path").value});
+    notice("两个官方 Q8 语音模型校验通过。");
+  } catch (error) { notice(error.message, true); }
+  finally { button.disabled = false; }
+});
 $("verify").addEventListener("click", async () => {
   const button = $("verify");
   button.disabled = true;
@@ -455,6 +493,9 @@ async function refresh() {
       $("precision").value = s.precision;
       $("context").value = s.context_limit;
       $("idle").value = s.idle_unload_seconds;
+      const speech = await api("/api/speech/settings");
+      $("speech-model-path").value = speech.model_path;
+      speechStatus(speech);
       initialized = true;
     }
   } catch (error) {

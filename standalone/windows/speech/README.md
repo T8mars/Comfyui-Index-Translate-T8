@@ -4,6 +4,14 @@ The streaming worker and audio resampler were adapted from
 [T8mars/comfyui-confucius-r2t2-t8](https://github.com/T8mars/comfyui-confucius-r2t2-t8).
 They run under the Windows bundle's private Python; ComfyUI is not needed.
 
+In version 0.1.14, choose the existing R2T2 project, its `models` directory,
+or the folder containing the official Q8 decoder and projector under
+**Models and devices → Video speech recognition**. The worker opens those files
+directly without copying them. Settings persist in `data/speech-settings.json`.
+The `reuse-ASR` Windows archive omits the two GGUF weights; VAD and the native
+worker remain bundled. The native worker uses the private runtime's CUDA DLLs,
+so a system CUDA Toolkit is not needed for this prebuilt bundle.
+
 `r2t2_core/` and `bridge.py` are Apache-2.0 code (see `CODE_LICENSE`).
 `audio-worklet.js` in the Chrome extension is from the same project and is
 also Apache-2.0. The compiled native library includes code from llama.cpp;

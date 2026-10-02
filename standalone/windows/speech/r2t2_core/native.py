@@ -36,7 +36,7 @@ def _sha256(path: Path) -> str:
 
 def verify_pair(directory: Path = GGUF_DIR, *, hash_files: bool = True) -> tuple[Path, Path]:
     """Require the exact official Q8 files; never auto-select another GGUF."""
-    directory = directory.resolve(strict=True)
+    directory = Path(directory).resolve(strict=True)
     paths = []
     for name in (MODEL_NAME, PROJECTOR_NAME):
         path = (directory / name).resolve(strict=True)
@@ -65,7 +65,12 @@ def _load_extension(build: Path):
     pyd_dir = pyd_files[0].parent
     dll_dirs = {p.parent for p in build.rglob("*.dll")}
     cuda_bin = Path(os.environ.get("CUDA_PATH", r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8")) / "bin"
-    dll_dirs.add(cuda_bin)
+    # Reuse the standalone runtime's CUDA libraries; no Toolkit installation is required.
+    torch_lib = Path(sys.prefix) / "Lib/site-packages/torch/lib"
+    if torch_lib.is_dir():
+        dll_dirs.add(torch_lib)
+    elif cuda_bin.is_dir():
+        dll_dirs.add(cuda_bin)
     for dll_dir in sorted(dll_dirs):
         _DLL_HANDLES.append(os.add_dll_directory(str(dll_dir)))
     if str(pyd_dir) not in sys.path:

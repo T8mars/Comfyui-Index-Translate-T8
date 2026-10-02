@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 
 
-def choose_directory(initial_directory: Path) -> str | None:
+def choose_directory(initial_directory: Path, title: str = "选择 Index Translate 模型文件夹") -> str | None:
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     try:
         result = subprocess.run(
-            [sys.executable, str(Path(__file__).resolve()), str(initial_directory)],
+            [sys.executable, str(Path(__file__).resolve()), str(initial_directory), title],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -29,7 +29,7 @@ def choose_directory(initial_directory: Path) -> str | None:
     return str(Path(path).resolve()) if path else None
 
 
-def _dialog(initial_directory: str) -> None:
+def _dialog(initial_directory: str, title: str) -> None:
     import tkinter as tk
     from tkinter import filedialog
 
@@ -43,7 +43,7 @@ def _dialog(initial_directory: str) -> None:
     try:
         selected = filedialog.askdirectory(
             parent=root,
-            title="选择 Index Translate 模型文件夹",
+            title=title,
             initialdir=str(initial),
             mustexist=True,
         )
@@ -53,4 +53,4 @@ def _dialog(initial_directory: str) -> None:
 
 
 if __name__ == "__main__":
-    _dialog(sys.argv[1])
+    _dialog(sys.argv[1], sys.argv[2])

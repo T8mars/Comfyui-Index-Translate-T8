@@ -39,7 +39,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome now translates HTML5 subtitle tracks and can stream tab audio to the standalone R2T2 worker for videos without readable subtitles. Audio mode requires the new complete Windows offline bundle with speech weights and dependencies; the Windows code ZIP cannot add them to an older bundle. Index-Translate model files remain at https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "R2T2 speech recognition now supports an existing model directory without copying GGUF weights. Choose the path in the standalone Models and devices panel. Chrome video capture lifecycle, translation cache settings, and full-screen subtitles are corrected. Audio mode requires the 0.1.13 or newer complete Windows runtime; code-only updates cannot add speech dependencies to older bundles. A reuse-ASR bundle is shared separately for users who already have speech weights. Index-Translate model files remain at https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
 
   registry:
     needs: release

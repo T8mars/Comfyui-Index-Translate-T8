@@ -87,6 +87,17 @@ class SpeechFeed(StrictModel):
     pcm_f32le_b64: str = Field(min_length=4, max_length=180000)
 
 
+class SpeechSettings(StrictModel):
+    model_path: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("model_path")
+    @classmethod
+    def nonblank_path(cls, value):
+        if not value.strip():
+            raise ValueError("请选择语音模型目录")
+        return value.strip()
+
+
 class SpeechFinish(StrictModel):
     last_seq: int = Field(ge=-1)
     total_samples: int = Field(ge=0)
@@ -158,7 +169,7 @@ def create_app(root=ROOT, state=None, port=8098):
             return action()
         except PermissionError as error:
             raise HTTPException(403, str(error)) from error
-        except ValueError as error:
+        except (ValueError, OSError) as error:
             raise HTTPException(400, str(error)) from error
         except RuntimeError as error:
             raise HTTPException(503, str(error)) from error
@@ -289,6 +300,26 @@ def create_app(root=ROOT, state=None, port=8098):
             return {"model_ready": False}
         except ValueError as error:
             raise HTTPException(409, str(error))
+
+    @app.get("/api/speech/settings")
+    def speech_settings(request: Request):
+        client(request, ui_only=True)
+        return speech.settings()
+
+    @app.post("/api/speech/settings")
+    def configure_speech(value: SpeechSettings, request: Request):
+        client(request, ui_only=True)
+        return speech_call(lambda: speech.configure(value.model_path.strip()))
+
+    @app.post("/api/speech/verify")
+    def verify_speech(value: SpeechSettings, request: Request):
+        client(request, ui_only=True)
+        return speech_call(lambda: speech.verify(value.model_path.strip()))
+
+    @app.post("/api/speech/model-directory/pick")
+    def pick_speech_directory(request: Request):
+        client(request, ui_only=True)
+        return speech_call(lambda: {"path": choose_directory(speech.resolve_model(), "选择 R2T2 语音识别模型文件夹")})
 
     @app.post("/api/speech/start")
     def speech_start(request: Request):

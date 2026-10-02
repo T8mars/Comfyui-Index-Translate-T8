@@ -146,6 +146,9 @@ async function backend(config) {
 }
 
 const audioSessions = new Map();
+const captureGrants = new Map();
+let audioStartGeneration = 0;
+let offscreenCreation = null;
 
 async function translateVideo(cfg, value) {
   const text = String(value || "").trim();
@@ -172,27 +175,37 @@ async function translateVideo(cfg, value) {
 }
 
 async function ensureOffscreen() {
-  if (!(await chrome.offscreen.hasDocument())) {
-    await chrome.offscreen.createDocument({
-      url: "offscreen.html",
-      reasons: ["USER_MEDIA", "AUDIO_PLAYBACK"],
-      justification: "用户主动启用视频翻译时采集当前标签页声音，在本地识别并继续播放原声音频",
-    });
-  }
+  if (!offscreenCreation)
+    offscreenCreation = (async () => {
+      if (!(await chrome.offscreen.hasDocument()))
+        await chrome.offscreen.createDocument({
+          url: "offscreen.html",
+          reasons: ["USER_MEDIA", "AUDIO_PLAYBACK"],
+          justification: "用户主动启用视频翻译时采集当前标签页声音，在本地识别并继续播放原声音频",
+        });
+    })().finally(() => { offscreenCreation = null; });
+  return offscreenCreation;
 }
 
-async function audioStop(tabId) {
+async function cancelSpeech(cfg, sid) {
+  try { await api(cfg, `/api/speech/${encodeURIComponent(sid)}/cancel`, "POST", {}, 30000); }
+  catch {}
+}
+
+async function audioStop(tabId, expectedSession = null, invalidateStart = true) {
+  if (expectedSession && audioSessions.get(tabId) !== expectedSession) return;
+  if (invalidateStart) ++audioStartGeneration;
+  captureGrants.delete(tabId);
   const session = audioSessions.get(tabId);
   audioSessions.delete(tabId);
-  try { await chrome.runtime.sendMessage({type:"OFFSCREEN_STOP",tabId}); } catch {}
-  if (session?.sid) {
-    try { await api(session.cfg, `/api/speech/${encodeURIComponent(session.sid)}/cancel`, "POST", {}, 30000); }
-    catch {}
-  }
+  if (!session) return;
+  try { await chrome.runtime.sendMessage({type:"OFFSCREEN_STOP",tabId,captureId:session.captureId}); } catch {}
+  if (session.sid) await cancelSpeech(session.cfg, session.sid);
 }
 
 async function sendSpeech(tabId, events, session) {
   for (const event of events || []) {
+    if (audioSessions.get(tabId) !== session) return;
     if (!event.segment_final && !event.final) {
       const preview = String(event.preview_text || "");
       const text = (preview.startsWith(session.committed)
@@ -200,7 +213,7 @@ async function sendSpeech(tabId, events, session) {
       if (text && text !== session.lastPreview) {
         session.lastPreview = text;
         try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH_PREVIEW",source:text}); }
-        catch { await audioStop(tabId); }
+        catch { await audioStop(tabId, session); }
       }
       continue;
     }
@@ -211,14 +224,14 @@ async function sendSpeech(tabId, events, session) {
     session.lastPreview = "";
     if (text) {
       try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:text}); }
-      catch { await audioStop(tabId); }
+      catch { await audioStop(tabId, session); }
     }
   }
 }
 
 async function audioFeed(tabId, value) {
   const session = audioSessions.get(tabId);
-  if (!session?.sid) return {};
+  if (!session?.sid || session.captureId !== value.captureId) return {};
   if (!Number.isInteger(value.samples) || value.samples < 1 || value.samples > 32000 ||
       typeof value.pcm_f32le_b64 !== "string" || value.pcm_f32le_b64.length > 180000)
     throw new Error("无效的音频帧");
@@ -239,6 +252,10 @@ async function audioFeed(tabId, value) {
       }, 180000);
       await sendSpeech(tabId, final.events, current);
       const next = await api(current.cfg, "/api/speech/start", "POST", {}, 180000);
+      if (audioSessions.get(tabId) !== current) {
+        await cancelSpeech(current.cfg, next.session_id);
+        return;
+      }
       current.sid = next.session_id;
       current.seq = current.samples = 0;
       current.committed = "";
@@ -246,31 +263,48 @@ async function audioFeed(tabId, value) {
   });
   try { await current.queue; return {}; }
   catch (error) {
-    await audioStop(tabId);
-    try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    if (audioSessions.get(tabId) === current) {
+      await audioStop(tabId, current);
+      try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    }
     throw error;
   }
 }
 
 async function audioStart(tabId, streamId, cfg) {
-  for (const id of [...audioSessions.keys()]) await audioStop(id);
-  await ensureOffscreen();
-  const started = await chrome.runtime.sendMessage({type:"OFFSCREEN_CAPTURE",tabId,streamId});
-  if (!started?.ok) throw new Error(started?.error || "标签页音频采集失败");
-  const session = {cfg, sid:null, seq:0, samples:0, committed:"", lastPreview:"", queue:Promise.resolve()};
+  const generation = ++audioStartGeneration;
+  for (const id of [...audioSessions.keys()]) await audioStop(id, null, false);
+  if (generation !== audioStartGeneration) return;
+  const session = {cfg, captureId:crypto.randomUUID(), sid:null, seq:0, samples:0,
+    committed:"", lastPreview:"", queue:Promise.resolve()};
   audioSessions.set(tabId, session);
   try {
+    await ensureOffscreen();
+    if (audioSessions.get(tabId) !== session) return;
+    const started = await chrome.runtime.sendMessage({type:"OFFSCREEN_CAPTURE",tabId,streamId,captureId:session.captureId});
+    if (!started?.ok) throw new Error(started?.error || "标签页音频采集失败");
+    if (audioSessions.get(tabId) !== session) {
+      try { await chrome.runtime.sendMessage({type:"OFFSCREEN_STOP",tabId,captureId:session.captureId}); } catch {}
+      return;
+    }
     const status = await backend(cfg);
+    if (audioSessions.get(tabId) !== session) return;
     if (!status.capabilities?.includes("speech_r2t2_v1"))
       throw new Error("请升级独立整合包，安装 R2T2 语音组件");
     const result = await api(cfg, "/api/speech/start", "POST", {}, 180000);
-    if (audioSessions.get(tabId) !== session) return;
+    if (audioSessions.get(tabId) !== session) {
+      await cancelSpeech(cfg, result.session_id);
+      return;
+    }
     session.sid = result.session_id;
-    await chrome.runtime.sendMessage({type:"OFFSCREEN_READY",tabId});
+    await chrome.runtime.sendMessage({type:"OFFSCREEN_READY",tabId,captureId:session.captureId});
+    if (audioSessions.get(tabId) !== session) return;
     await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:"正在识别视频声音…"});
   } catch (error) {
-    await audioStop(tabId);
-    try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    if (audioSessions.get(tabId) === session) {
+      await audioStop(tabId, session);
+      try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
+    }
   }
 }
 function ui(sender) {
@@ -650,11 +684,24 @@ async function handle(message, sender) {
   if (sender.id !== chrome.runtime.id) throw new Error("无效的消息来源");
   if (message.type === "VIDEO_CAPTURE_ID" && ui(sender)) {
     if (!Number.isInteger(message.tabId)) throw new Error("无效的标签页");
-    return {streamId: await chrome.tabCapture.getMediaStreamId({targetTabId:message.tabId})};
+    await audioStop(message.tabId);
+    const generation = audioStartGeneration;
+    const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId:message.tabId});
+    if (generation !== audioStartGeneration) throw new Error("页面音频授权已取消，请重试");
+    captureGrants.set(message.tabId, streamId);
+    return {streamId};
   }
   const cfg = await config();
   if (message.type === "VIDEO_TRANSLATE" && page(sender))
     return translateVideo(cfg, message.text);
+  if (message.type === "VIDEO_SCOPE" && page(sender)) {
+    const status = await backend(cfg);
+    return {scope: JSON.stringify(canonical({endpoint:cfg.endpoint,identity:cfg.identity,
+      source:cfg.source,target:cfg.target,glossary:cfg.glossary,
+      revision:status.revision,prompt:status.prompt_version,
+      runtime:{device:status.settings.device,precision:status.settings.precision,
+        context_limit:status.settings.context_limit}}))};
+  }
   if (message.type === "VIDEO_AUDIO_STOP_PAGE" && page(sender)) {
     await audioStop(sender.tab.id);
     return {};
@@ -664,6 +711,7 @@ async function handle(message, sender) {
     return audioFeed(message.tabId, message);
   if (message.type === "VIDEO_CAPTURE_ENDED" &&
       sender.url === chrome.runtime.getURL("offscreen.html")) {
+    if (audioSessions.get(message.tabId)?.captureId !== message.captureId) return {};
     await audioStop(message.tabId);
     try { await chrome.tabs.sendMessage(message.tabId, {
       type:"IT_VIDEO_SPEECH",source:"",note:message.reason || "视频声音采集已结束"}); } catch {}
@@ -768,6 +816,9 @@ async function handle(message, sender) {
     if (!Number.isInteger(message.tabId) || typeof message.streamId !== "string" ||
         !message.streamId || message.streamId.length > 4096 || /[\x00-\x1f]/.test(message.streamId))
       throw new Error("无效的标签页音频授权");
+    if (captureGrants.get(message.tabId) !== message.streamId)
+      throw new Error("标签页音频授权已过期，请重新启动视频翻译");
+    captureGrants.delete(message.tabId);
     audioStart(message.tabId, message.streamId, cfg).catch(async error => {
       try { await chrome.tabs.sendMessage(message.tabId, {
         type:"IT_VIDEO_SPEECH",source:"",note:error.message}); } catch {}
