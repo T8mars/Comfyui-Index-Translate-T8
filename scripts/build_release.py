@@ -31,7 +31,11 @@ def archive(name: str, files: list[pathlib.Path], base: pathlib.Path) -> pathlib
             info = zipfile.ZipInfo(relative, date_time=(2026, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            handle.writestr(info, source.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+            content = source.read_bytes()
+            if name.startswith("IndexTranslate-Windows-code-") and relative == "requirements.lock.txt":
+                # Match the line endings in existing Windows bundles.
+                content = content.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            handle.writestr(info, content, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     return target
 
 
@@ -41,7 +45,9 @@ node_files = [ROOT / name for name in (
 )] + files_under(ROOT / "_vendor") + files_under(ROOT / "examples")
 assets = [
     archive(f"IndexTranslate-ComfyUI-v{VERSION}.zip", node_files, ROOT),
-    archive(f"IndexTranslate-Windows-code-v{VERSION}.zip", files_under(ROOT / "standalone" / "windows"), ROOT / "standalone" / "windows"),
+    archive(f"IndexTranslate-Windows-code-v{VERSION}.zip", [
+        path for path in files_under(ROOT / "standalone" / "windows") if path.suffix != ".cmd"
+    ], ROOT / "standalone" / "windows"),
     archive(f"IndexTranslate-Chrome-v{VERSION}.zip", files_under(ROOT / "standalone" / "chrome"), ROOT / "standalone" / "chrome"),
 ]
 (OUT / "SHA256SUMS.txt").write_text(

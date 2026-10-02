@@ -108,7 +108,8 @@ def apply_release(tag: str, asset: dict) -> None:
     entries = validated_entries(payload, tag)
     candidate_lock = dict(entries).get("requirements.lock.txt")
     current_lock = ROOT / "requirements.lock.txt"
-    if candidate_lock is not None and current_lock.exists() and candidate_lock != current_lock.read_bytes():
+    if (candidate_lock is not None and current_lock.exists() and
+            candidate_lock.decode("utf-8").splitlines() != current_lock.read_text("utf-8").splitlines()):
         raise RuntimeError("新版需要更新 Python 依赖，请获取作者分享的新完整整合包")
     DATA.mkdir(exist_ok=True)
     with exclusive_lock(DATA / "update.lock", "另一更新任务正在运行"):
