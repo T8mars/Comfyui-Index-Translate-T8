@@ -4,14 +4,16 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。扩展会在安装、浏览器启动以及每天自动检查 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest)，发现新版时显示 `NEW` 徽标，设置页可手动检查。Chrome 不允许「加载已解压」的扩展自行替换程序文件；收到提示后下载新版 ZIP、覆盖解压文件夹，再到扩展页点击「重新加载」。
 
-1. 先解压 `IndexTranslate-Chrome-0.1.11.zip`，找到直接包含 `manifest.json` 的文件夹。GitHub Release ZIP 的文件直接位于解压目录；本工作区 ZIP 另有 `chrome_index_translate` 外层目录。不要在 Chrome 中选择 `.zip` 文件。
-2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.11-unpacked`，可直接选择该文件夹。
+1. 先解压 GitHub Release 的 `IndexTranslate-Chrome-v0.1.12.zip`，或本工作区的 `IndexTranslate-Chrome-0.1.12.zip`，找到直接包含 `manifest.json` 的文件夹。GitHub Release ZIP 的文件直接位于解压目录；本工作区 ZIP 另有 `chrome_index_translate` 外层目录。不要在 Chrome 中选择 `.zip` 文件。
+2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.12-unpacked`，可直接选择该文件夹。
 3. 在整合包 Chrome 配对页生成配对码；在扩展设置输入本机服务地址和一次性配对码。
 4. 打开网页点击扩展，可手动翻译，或勾选「自动翻译这个站点」并授予该站点权限。
 
 启用站点规则后，刷新自动翻译正文；滚动、动态新增段落和 SPA 路由切换会增量翻译。双语显示保留原文 DOM，代码、链接、公式作为占位符保留。可停止、还原、重试；还原后自动观察暂停，直到再次启动。关闭站点规则会停止已打开页面的自动任务。
 
-网页中会显示蒂芙尼蓝色的「T8 / 译」悬浮按钮。可拖动到方便的位置，扩展会记住位置；单击可翻译当前页面并打开进度面板，面板可收起，也可停止、还原或重试。已授权站点即使关闭自动翻译，悬浮按钮仍会保留，供手动点击；未授予站点权限时，从扩展菜单手动翻译也会在当前页面显示按钮。
+网页中会显示蒂芙尼蓝色的「译」悬浮按钮。可拖动到方便的位置，扩展会记住位置；单击可翻译当前页面并打开进度面板，面板可收起，也可停止、还原或重试。已授权站点即使关闭自动翻译，悬浮按钮仍会保留，供手动点击；未授予站点权限时，从扩展菜单手动翻译也会在当前页面显示按钮。
+
+0.1.12 将悬浮按钮缩至 36 × 36 像素，只保留「译」字；进度仍可在展开面板中查看。
 
 0.1.11 将扩展名称统一为「T8 Index Translate 本地网页翻译」，新增可拖动、可收起的网页悬浮翻译按钮。此更新与 0.1.10 Windows 本地服务兼容。
 

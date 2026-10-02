@@ -220,17 +220,14 @@
       : `${phase} · 完成 ${count.completed} / ${total} · 处理中 ${count.running} · 等待 ${count.waiting} · 跳过 ${count.skipped} · 失败 ${count.failed}`;
     toolbar.root.getElementById("error").textContent = lastError;
     const bubble = toolbar.root.getElementById("bubble");
-    const badge = toolbar.root.getElementById("badge");
     bubble.setAttribute("aria-label", enabled && !paused ? "查看翻译进度" : "自动翻译当前页面");
     bubble.title = bubble.getAttribute("aria-label");
-    badge.textContent = count.running || count.waiting ? "…" : count.completed ? "✓" : "";
-    badge.hidden = !badge.textContent;
   }
   function createToolbar(savedPosition) {
     if (toolbar) return;
     const host = document.createElement("div");
     host.dataset.indexOwned = "toolbar";
-    host.style.cssText = "position:fixed;z-index:2147483647;width:48px;height:48px";
+    host.style.cssText = "position:fixed;z-index:2147483647;width:36px;height:36px";
     const root = host.attachShadow({ mode: "closed" });
     const style = document.createElement("style");
     style.textContent = `
@@ -238,12 +235,9 @@
       [hidden]{display:none!important}
       button{font:inherit;border:0;cursor:pointer}
       button:focus-visible{outline:2px solid #008f8d;outline-offset:2px}
-      #bubble{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#0abab5,#078f90);color:white;box-shadow:0 5px 18px #007c794f;line-height:1;touch-action:none;user-select:none;cursor:grab}
+      #bubble{position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:linear-gradient(145deg,#0abab5,#078f90);color:white;box-shadow:0 4px 13px #007c7940;font-size:19px;font-weight:700;line-height:1;touch-action:none;user-select:none;cursor:grab}
       #bubble:active{cursor:grabbing}
       #bubble:hover{filter:brightness(1.06)}
-      #mark{font-size:16px;font-weight:800;letter-spacing:.03em}
-      #submark{font-size:10px;font-weight:700;letter-spacing:.13em}
-      #badge{position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;padding:1px 3px;border:2px solid white;border-radius:12px;background:#126f70;color:white;font-size:11px;line-height:14px}
       section{position:absolute;width:min(315px,calc(100vw - 88px));max-height:calc(100vh - 16px);overflow:auto;box-sizing:border-box;padding:14px 16px;border:1px solid #a6e0dd;border-radius:14px;background:white;box-shadow:0 9px 28px #103a3a33}
       header{display:flex;align-items:center;justify-content:space-between;gap:10px}
       strong{font-size:13px}p{margin:8px 0;line-height:1.5}
@@ -257,17 +251,7 @@
     const bubble = document.createElement("button");
     bubble.id = "bubble";
     bubble.type = "button";
-    const mark = document.createElement("span");
-    mark.id = "mark";
-    mark.textContent = "T8";
-    const submark = document.createElement("span");
-    submark.id = "submark";
-    submark.textContent = "译";
-    bubble.append(mark, submark);
-    const badge = document.createElement("span");
-    badge.id = "badge";
-    badge.hidden = true;
-    bubble.append(badge);
+    bubble.textContent = "译";
     root.append(bubble);
     const section = document.createElement("section");
     section.hidden = true;
@@ -307,7 +291,7 @@
     document.documentElement.append(host);
     toolbar = { host, root };
     const margin = 8;
-    const width = 48;
+    const width = 36;
     const initial = savedPosition &&
       Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)
       ? savedPosition : { x: 0.82, y: 0.64 };
@@ -329,7 +313,7 @@
       section.style.left = `${panelLeft - rect.left}px`;
       section.style.right = "auto";
       const panelHeight = section.getBoundingClientRect().height;
-      const desiredTop = rect.top + 24 - panelHeight / 2;
+      const desiredTop = rect.top + 18 - panelHeight / 2;
       section.style.top = `${Math.max(margin, Math.min(desiredTop, innerHeight - panelHeight - margin)) - rect.top}px`;
     };
     const place = (x, y) => {
