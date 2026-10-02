@@ -314,6 +314,25 @@ $("save-settings").addEventListener("click", async () => {
 $("model-id").addEventListener("change", () => {
   $("model-path").value = "models/" + $("model-id").value.split("/").at(-1);
 });
+$("browse-model-path").addEventListener("click", async () => {
+  const button = $("browse-model-path");
+  button.disabled = true;
+  try {
+    const result = await post("/api/model-directory/pick");
+    if (!result.path) return;
+    $("model-path").value = result.path;
+    const folder = result.path.replace(/[\\/]+$/, "").split(/[\\/]/).at(-1);
+    const modelId = "IndexTeam/" + folder;
+    if ([...$("model-id").options].some((option) => option.value === modelId && !option.disabled)) {
+      $("model-id").value = modelId;
+    }
+    notice("已选择模型目录；点击“保存设置”后生效。");
+  } catch (error) {
+    notice(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
 $("verify").addEventListener("click", async () => {
   const button = $("verify");
   button.disabled = true;

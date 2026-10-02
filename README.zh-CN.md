@@ -6,7 +6,7 @@
 
 0.1.6 更新独立节点随包携带的共享模型管理代码：已校验模型可跳过下载空间预检；校验收据写入失败不影响模型可用性；损坏或超长续传文件不会被误计为可复用空间。节点推理接口保持兼容，先前的加载失败清理、模型核验和取消修复继续保留。
 
-推荐先使用官方 2B。将完整模型放到 `ComfyUI/models/index_translate/Index-Translate-2B`，或者在节点 `model_path` 填写完整模型目录。可用本节点自带 `download_model.py --directory <完整模型目录> --model 2B` 下载并逐文件校验。
+推荐先使用官方 2B。模型仓库中的完整文件夹已命名为 `Index-Translate-2B` / `Index-Translate-9B`，下载后原样放入 `ComfyUI/models/index_translate/` 即可，无需改名；也可在节点 `model_path` 填写完整模型目录。可用本节点自带 `download_model.py --directory <完整模型目录> --model 2B` 下载并逐文件校验。
 
 搜索「Index Translate 本地翻译」，连接 `translation` 输出到「Preview as Text」或图像流程的文本输入。语言可填写 `auto/zh/en/ja` 等代码，也可填写语言名称；目标语言不能为 auto。`metadata` 返回设备、精度、token 数和耗时。
 

@@ -23,6 +23,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from index_translate_core.inference import hardware, PROMPT_VERSION
 from index_translate_core.models import catalog, inspect_model
 from .state import State
+from .folder_picker import choose_directory
 
 
 class StrictModel(BaseModel):
@@ -170,6 +171,15 @@ def create_app(root=ROOT, state=None, port=8098):
         return [{"id": key, "revision": spec["revision"], "bytes": sum(f["size"] for f in spec["files"]),
                  "available": not bool(spec.get("unavailable_reasons")), "reasons": spec.get("unavailable_reasons", [])}
                 for key, spec in catalog().items()]
+
+    @app.post("/api/model-directory/pick")
+    def pick_model_directory(request: Request):
+        client(request, ui_only=True)
+        try:
+            selected = choose_directory(state.resolve_model())
+        except (OSError, RuntimeError, ValueError) as error:
+            raise HTTPException(500, str(error)) from error
+        return {"path": selected}
 
     @app.post("/api/settings")
     def settings(value: Settings, request: Request):

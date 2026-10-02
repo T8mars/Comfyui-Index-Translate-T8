@@ -8,7 +8,7 @@
 
 在 ComfyUI Manager 中搜索 **Index Translate · T8star-Aix** 安装；也可克隆本仓库到 `ComfyUI/custom_nodes/Comfyui-Index-Translate-T8`，用 **ComfyUI 自己的 Python** 安装 `requirements.txt` 后重启。节点使用现有 PyTorch，不会随包安装模型或 Python。Transformers 5.17.0 可能影响宿主其他节点，升级前请检查兼容性。
 
-从[模型仓库](https://huggingface.co/t8star/Index-Translate-Comfy/tree/main)下载完整的 `2B` 或 `9B` 文件夹，分别放到 `ComfyUI/models/index_translate/Index-Translate-2B` 或 `ComfyUI/models/index_translate/Index-Translate-9B`。也可在节点的 `model_path` 填写完整目录，或运行 `python download_model.py --directory <目标目录> --model 2B` 从官方源逐文件下载、校验。建议先用 2B；9B 需要更多显存。35B preview 缺少完整分片，暂不支持。
+从[模型仓库](https://huggingface.co/t8star/Index-Translate-Comfy/tree/main)下载完整的 `Index-Translate-2B` 或 `Index-Translate-9B` 文件夹，原样放进 `ComfyUI/models/index_translate/` 即可，无需改名。也可在节点的 `model_path` 填写完整目录，或运行 `python download_model.py --directory <目标目录> --model 2B` 从官方源逐文件下载、校验。建议先用 2B；9B 需要更多显存。35B preview 缺少完整分片，暂不支持。
 
 在节点菜单搜索「Index Translate 本地翻译」，文本输入可接工作流其他节点，`translation` 可接文本预览。示例见 [examples/text-translation.json](examples/text-translation.json)。低显存 NVIDIA GPU 可另装 `requirements-nf4.txt` 并选 NF4；CPU 选 FP32。
 
