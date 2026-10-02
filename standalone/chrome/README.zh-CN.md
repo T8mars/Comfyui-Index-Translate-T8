@@ -4,8 +4,8 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。扩展会在安装、浏览器启动以及每天自动检查 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest)，发现新版时显示 `NEW` 徽标，设置页可手动检查。Chrome 不允许「加载已解压」的扩展自行替换程序文件；收到提示后下载新版 ZIP、覆盖解压文件夹，再到扩展页点击「重新加载」。
 
-1. 先解压 `IndexTranslate-Chrome-0.1.9.zip`，进入解压后的 `chrome_index_translate` 文件夹，确认里面直接能看到 `manifest.json`。不要在 Chrome 中选择 `.zip` 文件。
-2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.9-unpacked`，可直接选择该文件夹。
+1. 先解压 `IndexTranslate-Chrome-0.1.10.zip`，进入解压后的 `chrome_index_translate` 文件夹，确认里面直接能看到 `manifest.json`。不要在 Chrome 中选择 `.zip` 文件。
+2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。若使用项目附带的 `dist/IndexTranslate-Chrome-0.1.10-unpacked`，可直接选择该文件夹。
 3. 在整合包 Chrome 配对页生成配对码；在扩展设置输入本机服务地址和一次性配对码。
 4. 打开网页点击扩展，可手动翻译，或勾选「自动翻译这个站点」并授予该站点权限。
 
@@ -30,3 +30,5 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 0.1.7 增加作者链接与自动检查更新；翻译协议不变，请配合 0.1.7 整合包使用。
 
 0.1.9 与 Windows 整合包的模型目录选择功能同步；扩展翻译协议不变。
+
+0.1.10 修正翻译进度：无需翻译的段落单独计为「跳过」，不再让完成数长期停在 23/60 之类的状态；首次处理时显示模型可能正在加载。译文在网页网格容器内占完整行，避免挤乱 GitHub 卡片。与 0.1.9 Windows 本地服务兼容。

@@ -10,6 +10,10 @@
   opacity: 0.92 !important;
   white-space: pre-wrap !important;
   text-align: start !important;
+  grid-column: 1 / -1 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
 }
 [data-index-translation] code {
   white-space: pre-wrap;

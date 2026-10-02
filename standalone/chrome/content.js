@@ -205,9 +205,19 @@
   function update() {
     if (!toolbar) return;
     const count = stats();
+    const total = count.completed + count.running + count.waiting + count.failed;
+    const phase = !enabled
+      ? "未启动"
+      : count.running || count.waiting
+        ? count.running && !count.completed
+          ? "模型加载或翻译中"
+          : "翻译中"
+        : count.failed
+          ? "部分未完成"
+          : "翻译完成";
     toolbar.root.getElementById("status").textContent = paused
       ? "已暂停"
-      : `${enabled ? "翻译中" : "未启动"} · 完成 ${count.completed} / ${records.size} · 等待 ${count.waiting} · 失败 ${count.failed}`;
+      : `${phase} · 完成 ${count.completed} / ${total} · 处理中 ${count.running} · 等待 ${count.waiting} · 跳过 ${count.skipped} · 失败 ${count.failed}`;
     toolbar.root.getElementById("error").textContent = lastError;
   }
   function createToolbar() {
