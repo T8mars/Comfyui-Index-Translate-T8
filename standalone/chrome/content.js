@@ -219,28 +219,79 @@
       ? "已暂停"
       : `${phase} · 完成 ${count.completed} / ${total} · 处理中 ${count.running} · 等待 ${count.waiting} · 跳过 ${count.skipped} · 失败 ${count.failed}`;
     toolbar.root.getElementById("error").textContent = lastError;
+    const bubble = toolbar.root.getElementById("bubble");
+    const badge = toolbar.root.getElementById("badge");
+    bubble.setAttribute("aria-label", enabled && !paused ? "查看翻译进度" : "自动翻译当前页面");
+    bubble.title = bubble.getAttribute("aria-label");
+    badge.textContent = count.running || count.waiting ? "…" : count.completed ? "✓" : "";
+    badge.hidden = !badge.textContent;
   }
-  function createToolbar() {
+  function createToolbar(savedPosition) {
     if (toolbar) return;
     const host = document.createElement("div");
     host.dataset.indexOwned = "toolbar";
-    host.style.cssText =
-      "position:fixed;bottom:20px;right:20px;z-index:2147483647;max-width:380px";
+    host.style.cssText = "position:fixed;z-index:2147483647;width:48px;height:48px";
     const root = host.attachShadow({ mode: "closed" });
     const style = document.createElement("style");
-    style.textContent =
-      ":host{font:13px Segoe UI,Microsoft YaHei,sans-serif;color:#203343}section{padding:13px 16px;background:white;border:1px solid #ccdadd;border-radius:12px;box-shadow:0 5px 24px #172b3d22}strong{font-size:13px}p{margin:8px 0;line-height:1.5}#error{color:#af5b37;max-width:320px;font-size:12px}button{font:inherit;border:0;padding:7px 11px;margin-right:5px;border-radius:6px;background:#eaf1f2;color:#176e74;cursor:pointer}";
+    style.textContent = `
+      :host{font:13px Segoe UI,Microsoft YaHei,sans-serif;color:#203343}
+      [hidden]{display:none!important}
+      button{font:inherit;border:0;cursor:pointer}
+      button:focus-visible{outline:2px solid #008f8d;outline-offset:2px}
+      #bubble{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#0abab5,#078f90);color:white;box-shadow:0 5px 18px #007c794f;line-height:1;touch-action:none;user-select:none;cursor:grab}
+      #bubble:active{cursor:grabbing}
+      #bubble:hover{filter:brightness(1.06)}
+      #mark{font-size:16px;font-weight:800;letter-spacing:.03em}
+      #submark{font-size:10px;font-weight:700;letter-spacing:.13em}
+      #badge{position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;padding:1px 3px;border:2px solid white;border-radius:12px;background:#126f70;color:white;font-size:11px;line-height:14px}
+      section{position:absolute;width:min(315px,calc(100vw - 88px));max-height:calc(100vh - 16px);overflow:auto;box-sizing:border-box;padding:14px 16px;border:1px solid #a6e0dd;border-radius:14px;background:white;box-shadow:0 9px 28px #103a3a33}
+      header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      strong{font-size:13px}p{margin:8px 0;line-height:1.5}
+      #error{color:#af5b37;font-size:12px;overflow-wrap:anywhere}
+      #close{background:transparent;color:#758296;font-size:18px;line-height:1;padding:2px 5px}
+      .actions{display:flex;flex-wrap:wrap;gap:6px}
+      .actions button{padding:7px 10px;border-radius:7px;background:#def5f3;color:#066b6e}
+      .actions button:hover{background:#c4eae7}
+    `;
     root.append(style);
+    const bubble = document.createElement("button");
+    bubble.id = "bubble";
+    bubble.type = "button";
+    const mark = document.createElement("span");
+    mark.id = "mark";
+    mark.textContent = "T8";
+    const submark = document.createElement("span");
+    submark.id = "submark";
+    submark.textContent = "译";
+    bubble.append(mark, submark);
+    const badge = document.createElement("span");
+    badge.id = "badge";
+    badge.hidden = true;
+    bubble.append(badge);
+    root.append(bubble);
     const section = document.createElement("section");
+    section.hidden = true;
+    const header = document.createElement("header");
     const title = document.createElement("strong");
-    title.textContent = "Index Translate";
-    section.append(title);
+    title.textContent = "T8 Index Translate";
+    header.append(title);
+    const close = document.createElement("button");
+    close.id = "close";
+    close.type = "button";
+    close.setAttribute("aria-label", "收起翻译面板");
+    close.textContent = "×";
+    close.addEventListener("click", () => { section.hidden = true; });
+    header.append(close);
+    section.append(header);
     for (const id of ["status", "error"]) {
       const p = document.createElement("p");
       p.id = id;
       section.append(p);
     }
+    const actions = document.createElement("div");
+    actions.className = "actions";
     for (const [name, action] of [
+      ["翻译此页", () => start(true)],
       ["继续", () => start(true)],
       ["停止", () => stop(false)],
       ["还原", () => stop(true)],
@@ -249,11 +300,91 @@
       const b = document.createElement("button");
       b.textContent = name;
       b.addEventListener("click", action);
-      section.append(b);
+      actions.append(b);
     }
+    section.append(actions);
     root.append(section);
     document.documentElement.append(host);
     toolbar = { host, root };
+    const margin = 8;
+    const width = 48;
+    const initial = savedPosition &&
+      Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)
+      ? savedPosition : { x: 0.82, y: 0.64 };
+    let position = {
+      x: Math.max(0, Math.min(1, initial.x)),
+      y: Math.max(0, Math.min(1, initial.y)),
+    };
+    const clamp = (value, max) => Math.max(margin, Math.min(value, Math.max(margin, max - width - margin)));
+    const positionPanel = () => {
+      if (section.hidden) return;
+      const rect = bubble.getBoundingClientRect();
+      const panelWidth = section.getBoundingClientRect().width;
+      const leftSpace = rect.left;
+      const rightSpace = innerWidth - rect.right;
+      const preferredLeft = rightSpace >= panelWidth + 12 || rightSpace > leftSpace
+        ? rect.right + 12 : rect.left - panelWidth - 12;
+      const panelLeft = Math.max(margin,
+        Math.min(preferredLeft, innerWidth - panelWidth - margin));
+      section.style.left = `${panelLeft - rect.left}px`;
+      section.style.right = "auto";
+      const panelHeight = section.getBoundingClientRect().height;
+      const desiredTop = rect.top + 24 - panelHeight / 2;
+      section.style.top = `${Math.max(margin, Math.min(desiredTop, innerHeight - panelHeight - margin)) - rect.top}px`;
+    };
+    const place = (x, y) => {
+      host.style.left = `${clamp(x, innerWidth)}px`;
+      host.style.top = `${clamp(y, innerHeight)}px`;
+      positionPanel();
+    };
+    const placeRelative = () => place(position.x * Math.max(1, innerWidth - width),
+      position.y * Math.max(1, innerHeight - width));
+    placeRelative();
+    let drag = null;
+    let suppressClick = false;
+    bubble.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      const rect = bubble.getBoundingClientRect();
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
+        left: rect.left, top: rect.top, moved: false };
+      bubble.setPointerCapture(event.pointerId);
+    });
+    bubble.addEventListener("pointermove", (event) => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+      drag.moved = true;
+      place(drag.left + dx, drag.top + dy);
+    });
+    const endDrag = (event) => {
+      if (!drag || event.pointerId !== drag.id) return;
+      if (drag.moved) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 0);
+        const rect = bubble.getBoundingClientRect();
+        position = {
+          x: rect.left / Math.max(1, innerWidth - width),
+          y: rect.top / Math.max(1, innerHeight - width),
+        };
+        message({ type: "FLOAT_POSITION", ...position }).catch(() => {});
+      }
+      drag = null;
+    };
+    bubble.addEventListener("pointerup", endDrag);
+    bubble.addEventListener("pointercancel", endDrag);
+    window.addEventListener("resize", placeRelative);
+    bubble.addEventListener("click", () => {
+      if (suppressClick) { suppressClick = false; return; }
+      if (!enabled || paused) {
+        section.hidden = false;
+        positionPanel();
+        start(true);
+      } else {
+        section.hidden = !section.hidden;
+        positionPanel();
+      }
+    });
     update();
   }
   function removeOutput(record) {
@@ -578,7 +709,12 @@
     try {
       const next = await message({ type: "PUBLIC" });
       if (invocation !== lifecycle) return;
-      if (!manual && !next.auto) return;
+      createToolbar(next.floating_position);
+      if (!manual && !next.auto) {
+        cfg = next;
+        update();
+        return;
+      }
       if (
         enabled &&
         !paused &&

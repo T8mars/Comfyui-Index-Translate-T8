@@ -109,7 +109,7 @@ async function refresh() {
   try {
     const result = await chrome.tabs.sendMessage(tab.id, { type: "IT_STATUS" });
     $("progress").textContent =
-      `完成 ${result.completed} · 等待 ${result.waiting} · 失败 ${result.failed}`;
+      `完成 ${result.completed} · 处理中 ${result.running} · 等待 ${result.waiting} · 跳过 ${result.skipped} · 失败 ${result.failed}`;
   } catch {}
 }
 async function initialize() {

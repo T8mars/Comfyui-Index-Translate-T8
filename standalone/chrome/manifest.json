@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Index Translate 本地网页翻译",
-  "version": "0.1.10",
+  "name": "T8 Index Translate 本地网页翻译",
+  "version": "0.1.11",
   "description": "使用本机 Index-Translate，自动翻译允许的站点，支持双语、动态正文和还原。",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "activeTab", "scripting", "alarms"],
@@ -10,7 +10,7 @@
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Index Translate"
+    "default_title": "T8 Index Translate 本地网页翻译"
   },
   "options_page": "options.html",
   "content_security_policy": {

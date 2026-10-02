@@ -9,6 +9,7 @@ const defaults = {
   glossary: {},
   rules: {},
   viewport: true,
+  floating_position: null,
 };
 const trusted = chrome.storage.local.setAccessLevel({
   accessLevel: "TRUSTED_CONTEXTS",
@@ -171,9 +172,8 @@ async function reconcileRegistrations() {
       ids: existing.map((item) => item.id),
     });
   const scripts = [];
-  for (const [origin, enabled] of Object.entries(cfg.rules)) {
+  for (const origin of Object.keys(cfg.rules)) {
     if (
-      enabled &&
       (await chrome.permissions.contains({ origins: [origin + "/*"] }))
     )
       scripts.push({
@@ -532,7 +532,18 @@ async function handle(message, sender) {
       glossary: cfg.glossary,
       auto: !!cfg.rules[origin],
       viewport: cfg.viewport,
+      floating_position: cfg.floating_position,
     };
+  }
+  if (message.type === "FLOAT_POSITION" && page(sender)) {
+    if (![message.x, message.y].every((value) =>
+      Number.isFinite(value) && value >= 0 && value <= 1))
+      throw new Error("悬浮按钮位置无效");
+    await updateConfig((current) => ({
+      ...current,
+      floating_position: { x: message.x, y: message.y },
+    }));
+    return {};
   }
   if (message.type === "SUBMIT" && page(sender))
     return submit(message, sender, cfg);
