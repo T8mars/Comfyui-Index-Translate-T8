@@ -1,0 +1,325 @@
+{
+  "IndexTeam/Index-Translate-2B": {
+    "revision": "47682cf7adbb20e7834c2e43960b1b85c369713a",
+    "license": "Apache-2.0",
+    "files": [
+      {
+        "path": "config.json",
+        "size": 2908,
+        "sha256": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/config.json"
+        }
+      },
+      {
+        "path": "generation_config.json",
+        "size": 100,
+        "sha256": "5b2e05bd687ce6eb52f8beff6d9dc98a0fb1e02ce8898062869218d17264220f",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=generation_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/generation_config.json"
+        }
+      },
+      {
+        "path": "merges.txt",
+        "size": 3353259,
+        "sha256": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=merges.txt",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/merges.txt"
+        }
+      },
+      {
+        "path": "model.safetensors",
+        "size": 4548216776,
+        "sha256": "2f499211fe352913464be69365e2e5724f913051efb3ae2b6fd0fa617a4c0b60",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=cc2149786ba184e9765bf114bb74585c428db59e&FilePath=model.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/model.safetensors"
+        }
+      },
+      {
+        "path": "preprocessor_config.json",
+        "size": 390,
+        "sha256": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/preprocessor_config.json"
+        }
+      },
+      {
+        "path": "tokenizer.json",
+        "size": 12807196,
+        "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=tokenizer.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/tokenizer.json"
+        }
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 16712,
+        "sha256": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=tokenizer_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/tokenizer_config.json"
+        }
+      },
+      {
+        "path": "video_preprocessor_config.json",
+        "size": 386,
+        "sha256": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=video_preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/video_preprocessor_config.json"
+        }
+      },
+      {
+        "path": "vocab.json",
+        "size": 6722759,
+        "sha256": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-2B/repo?Revision=3856c6a0cc6fe7d5ccaedb79fb1d7e496bdd1a32&FilePath=vocab.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-2B/resolve/47682cf7adbb20e7834c2e43960b1b85c369713a/vocab.json"
+        }
+      }
+    ],
+    "parameters": 2274069824,
+    "unavailable_reasons": []
+  },
+  "IndexTeam/Index-Translate-9B": {
+    "revision": "bd6d8a91199a2a72c009fbd01d575066249d89ba",
+    "license": "Apache-2.0",
+    "files": [
+      {
+        "path": "config.json",
+        "size": 3126,
+        "sha256": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/config.json"
+        }
+      },
+      {
+        "path": "generation_config.json",
+        "size": 100,
+        "sha256": "5b2e05bd687ce6eb52f8beff6d9dc98a0fb1e02ce8898062869218d17264220f",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=generation_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/generation_config.json"
+        }
+      },
+      {
+        "path": "merges.txt",
+        "size": 3353259,
+        "sha256": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=merges.txt",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/merges.txt"
+        }
+      },
+      {
+        "path": "model-00001-of-00004.safetensors",
+        "size": 5278251472,
+        "sha256": "60b667c0c334869669f129f7abbecb24b07f8e111a2e6bc059198359ce01f7e7",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=b3bf6b23cfecee3ed92d52f04ef1b5acb24224ac&FilePath=model-00001-of-00004.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/model-00001-of-00004.safetensors"
+        }
+      },
+      {
+        "path": "model-00002-of-00004.safetensors",
+        "size": 5358071808,
+        "sha256": "7cd89432b30065fcc6b20f7e9dec37972c7f70d437a83bbcb4dcad927f3694ac",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=b3bf6b23cfecee3ed92d52f04ef1b5acb24224ac&FilePath=model-00002-of-00004.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/model-00002-of-00004.safetensors"
+        }
+      },
+      {
+        "path": "model-00003-of-00004.safetensors",
+        "size": 5340098264,
+        "sha256": "0dcab64f71cb6aa696f202871dc3222ac39dc15e3ee62c5a75c1a8ff31b82bd5",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=b3bf6b23cfecee3ed92d52f04ef1b5acb24224ac&FilePath=model-00003-of-00004.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/model-00003-of-00004.safetensors"
+        }
+      },
+      {
+        "path": "model-00004-of-00004.safetensors",
+        "size": 3329882376,
+        "sha256": "7f2875ebde5816eda3b4e8c20d04a5898bcfab762977d0880bc1ea4b2e991182",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=b3bf6b23cfecee3ed92d52f04ef1b5acb24224ac&FilePath=model-00004-of-00004.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/model-00004-of-00004.safetensors"
+        }
+      },
+      {
+        "path": "model.safetensors.index.json",
+        "size": 70357,
+        "sha256": "2ade32a7ee117d939d2085e2ae0cbd762dca9d2f34437bdcd2bd334767c0a361",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=model.safetensors.index.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/model.safetensors.index.json"
+        }
+      },
+      {
+        "path": "preprocessor_config.json",
+        "size": 390,
+        "sha256": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/preprocessor_config.json"
+        }
+      },
+      {
+        "path": "tokenizer.json",
+        "size": 12807196,
+        "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=tokenizer.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/tokenizer.json"
+        }
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 16713,
+        "sha256": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=tokenizer_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/tokenizer_config.json"
+        }
+      },
+      {
+        "path": "video_preprocessor_config.json",
+        "size": 386,
+        "sha256": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=video_preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/video_preprocessor_config.json"
+        }
+      },
+      {
+        "path": "vocab.json",
+        "size": 6722759,
+        "sha256": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-9B/repo?Revision=f5ab9ecfc556389ba68d65833f887ba5c7be95bd&FilePath=vocab.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-9B/resolve/bd6d8a91199a2a72c009fbd01d575066249d89ba/vocab.json"
+        }
+      }
+    ],
+    "parameters": 9653104368,
+    "unavailable_reasons": []
+  },
+  "IndexTeam/Index-Translate-35B-A3B-preview": {
+    "revision": "6453878771e51608171b9dda419a88cc1340f104",
+    "license": "Apache-2.0",
+    "files": [
+      {
+        "path": "config.json",
+        "size": 3544,
+        "sha256": "5e4d7f74fec2f360eb9cfbfcd6ec0c4c76e684d3a11caaed259d9fd9bfbc7944",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/config.json"
+        }
+      },
+      {
+        "path": "generation_config.json",
+        "size": 100,
+        "sha256": "5b2e05bd687ce6eb52f8beff6d9dc98a0fb1e02ce8898062869218d17264220f",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=generation_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/generation_config.json"
+        }
+      },
+      {
+        "path": "merges.txt",
+        "size": 3353259,
+        "sha256": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=merges.txt",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/merges.txt"
+        }
+      },
+      {
+        "path": "model-00001-of-00015.safetensors",
+        "size": 4323955416,
+        "sha256": "266c7257c4866fe1226a04a6cf8e1f201bd5e8c8686eb79bf42202deaa5c1edd",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=a293df728d4929e5971e4d240f798a12f8f9223a&FilePath=model-00001-of-00015.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/model-00001-of-00015.safetensors"
+        }
+      },
+      {
+        "path": "model-00006-of-00015.safetensors",
+        "size": 4988775072,
+        "sha256": "025ac0609dc4a1960322d0ccecf93615561a5d0793808727c46b23fd422d9209",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=a293df728d4929e5971e4d240f798a12f8f9223a&FilePath=model-00006-of-00015.safetensors",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/model-00006-of-00015.safetensors"
+        }
+      },
+      {
+        "path": "model.safetensors.index.json",
+        "size": 163733,
+        "sha256": "ced5d9747da6b2a729aa3a8156447662a37d8ae30ff4a25726abcfd7428221ad",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=model.safetensors.index.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/model.safetensors.index.json"
+        }
+      },
+      {
+        "path": "preprocessor_config.json",
+        "size": 390,
+        "sha256": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/preprocessor_config.json"
+        }
+      },
+      {
+        "path": "tokenizer.json",
+        "size": 12807196,
+        "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=tokenizer.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/tokenizer.json"
+        }
+      },
+      {
+        "path": "tokenizer_config.json",
+        "size": 16713,
+        "sha256": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=tokenizer_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/tokenizer_config.json"
+        }
+      },
+      {
+        "path": "video_preprocessor_config.json",
+        "size": 387,
+        "sha256": "28a340356435be8f0f2bef2d955232785609a373d36df0ee6c51ce632a94780e",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=video_preprocessor_config.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/video_preprocessor_config.json"
+        }
+      },
+      {
+        "path": "vocab.json",
+        "size": 6722759,
+        "sha256": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+        "urls": {
+          "modelscope": "https://modelscope.cn/api/v1/models/IndexTeam/Index-Translate-35B-A3B-preview/repo?Revision=6959d1718409d44f0d1bd401cc001136fdf034f7&FilePath=vocab.json",
+          "huggingface": "https://huggingface.co/IndexTeam/Index-Translate-35B-A3B-preview/resolve/6453878771e51608171b9dda419a88cc1340f104/vocab.json"
+        }
+      }
+    ],
+    "parameters": null,
+    "unavailable_reasons": [
+      "固定快照缺少 13 个权重分片，等待发布方补齐后重核"
+    ]
+  }
+}

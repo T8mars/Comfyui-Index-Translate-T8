@@ -1,0 +1,15 @@
+Index Translate Community Integration 0.1.0
+
+This work integrates the Index-Translate models and prompt format published by
+IndexTeam / bilibili. This is an independent community integration and does not
+imply endorsement by the upstream authors.
+
+Upstream: https://github.com/bilibili/Index-Translate
+Reference commit: 8168c799051b4180c32c4c0469d255e80fdb2b2d
+Upstream code and published 2B / 9B model metadata: Apache License 2.0.
+2B revision: 47682cf7adbb20e7834c2e43960b1b85c369713a
+9B revision: bd6d8a91199a2a72c009fbd01d575066249d89ba
+
+Bundled third party software retains its own copyright and license terms.
+See runtime/LICENSE.txt, runtime/Lib/site-packages/*dist-info and
+THIRD_PARTY_NOTICES.json in the Windows package.

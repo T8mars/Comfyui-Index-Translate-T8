@@ -1,0 +1,23 @@
+[data-index-translation] {
+  display: block !important;
+  margin: 6px 0 9px !important;
+  padding: 6px 0 6px 12px !important;
+  border-left: 2px solid #39858a !important;
+  color: inherit !important;
+  font: inherit !important;
+  font-weight: 400 !important;
+  line-height: 1.7 !important;
+  opacity: 0.92 !important;
+  white-space: pre-wrap !important;
+  text-align: start !important;
+}
+[data-index-translation] code {
+  white-space: pre-wrap;
+}
+[data-index-error] {
+  display: block !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #af5b37 !important;
+  margin: 5px 0 !important;
+}

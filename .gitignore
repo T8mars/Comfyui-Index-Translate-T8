@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+*.log
+standalone/windows/data/
+standalone/windows/models/
+standalone/windows/runtime/

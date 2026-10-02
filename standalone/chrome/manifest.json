@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Index Translate 本地网页翻译",
+  "version": "0.1.7",
+  "description": "使用本机 Index-Translate，自动翻译允许的站点，支持双语、动态正文和还原。",
+  "minimum_chrome_version": "120",
+  "permissions": ["storage", "activeTab", "scripting", "alarms"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "https://api.github.com/*"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Index Translate"
+  },
+  "options_page": "options.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src http://127.0.0.1:* http://localhost:* https://api.github.com"
+  }
+}

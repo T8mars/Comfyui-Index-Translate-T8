@@ -1,0 +1,149 @@
+:root {
+  font-family:
+    Segoe UI,
+    Microsoft YaHei,
+    sans-serif;
+  color: #203343;
+  background: #f5f8f7;
+  font-size: 14px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  padding: 24px;
+  max-width: 680px;
+  margin: auto;
+}
+body.popup main {
+  width: 340px;
+  padding: 19px;
+}
+h1 {
+  font-size: 20px;
+  margin: 0 0 7px;
+}
+h2 {
+  font-size: 16px;
+  margin: 23px 0 12px;
+}
+p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #70808b;
+}
+label {
+  display: block;
+  font-size: 12px;
+  color: #637783;
+  margin: 14px 0 8px;
+}
+input,
+select,
+textarea {
+  font: inherit;
+  border: 1px solid #d2dfe0;
+  border-radius: 7px;
+  padding: 10px;
+  width: 100%;
+  color: #203343;
+  background: white;
+}
+button {
+  font: inherit;
+  background: #176e74;
+  color: white;
+  border: 0;
+  border-radius: 7px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button.secondary {
+  background: #e6eff0;
+  color: #176e74;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+  align-items: center;
+}
+.row > * {
+  flex: 1;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+}
+.check input {
+  width: auto;
+}
+.message {
+  padding: 12px;
+  background: #e7f1ef;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 40px;
+}
+.message.error {
+  color: #ab4937;
+  background: #fff0e9;
+}
+a {
+  color: #176e74;
+}
+.card {
+  padding: 20px;
+  background: white;
+  border: 1px solid #d6e2e3;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+code {
+  font-size: 13px;
+}
+#site {
+  font-size: 12px;
+  color: #758995;
+  overflow-wrap: anywhere;
+}
+.foot {
+  margin-top: 20px;
+  font-size: 12px;
+}
+.rules {
+  padding: 0;
+  list-style: none;
+}
+.rules li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #edf2f2;
+}
+.rules button {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.settings-link {
+  display: block;
+  text-align: right;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.credit { margin-top: 16px; font-size: 12px; color: #758995; }
+.credit a { color: #176e74; }

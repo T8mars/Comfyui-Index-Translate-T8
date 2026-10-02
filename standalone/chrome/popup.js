@@ -1,0 +1,138 @@
+"use strict";
+const $ = (id) => document.getElementById(id);
+let tab, cfg;
+const languages = {
+  zh: "中文",
+  en: "英语",
+  ja: "日语",
+  ko: "韩语",
+  de: "德语",
+  fr: "法语",
+  es: "西班牙语",
+  ru: "俄语",
+  ar: "阿拉伯语",
+  pt: "葡萄牙语",
+  it: "意大利语",
+  vi: "越南语",
+  th: "泰语",
+  hi: "印地语",
+};
+for (const [value, label] of Object.entries(languages)) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  $("target").append(option);
+}
+function tell(text, error = false) {
+  $("message").textContent = text;
+  $("message").classList.toggle("error", error);
+}
+async function message(payload) {
+  const reply = await chrome.runtime.sendMessage(payload);
+  if (!reply?.ok) throw new Error(reply?.error || "后台未响应");
+  return reply.value;
+}
+async function inject() {
+  if (!tab || !/^https?:\/\//.test(tab.url))
+    throw new Error("请选择普通 HTTP/HTTPS 网页");
+  await chrome.scripting.insertCSS({
+    target: { tabId: tab.id },
+    files: ["content.css"],
+  });
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ["content.js"],
+  });
+}
+async function preferences() {
+  cfg.target = $("target").value;
+  await message({
+    type: "PREFERENCES",
+    source: cfg.source,
+    target: cfg.target,
+    glossary: cfg.glossary,
+    viewport: cfg.viewport,
+  });
+}
+$("translate").addEventListener("click", async () => {
+  try {
+    await preferences();
+    await inject();
+    await chrome.tabs.sendMessage(tab.id, { type: "IT_RESTORE" });
+    await chrome.tabs.sendMessage(tab.id, { type: "IT_START" });
+    tell("翻译已开始。先处理视口附近的正文，滚动时继续翻译。");
+  } catch (error) {
+    tell(error.message, true);
+  }
+});
+$("restore").addEventListener("click", async () => {
+  try {
+    await inject();
+    await chrome.tabs.sendMessage(tab.id, { type: "IT_RESTORE" });
+    tell("原文已还原，当前页面暂停自动翻译。");
+  } catch (error) {
+    tell(error.message, true);
+  }
+});
+$("auto").addEventListener("change", async () => {
+  try {
+    if (!tab || !/^https?:\/\//.test(tab.url))
+      throw new Error("该页面不支持自动翻译");
+    const origin = new URL(tab.url).origin;
+    const enabled = $("auto").checked;
+    if (enabled) {
+      const granted = await chrome.permissions.request({
+        origins: [origin + "/*"],
+      });
+      if (!granted) {
+        $("auto").checked = false;
+        throw new Error("需要授予本站权限才能自动翻译");
+      }
+    }
+    await preferences();
+    await message({ type: "RULE", origin, enabled });
+    await inject();
+    await chrome.tabs.sendMessage(tab.id, {
+      type: enabled ? "IT_START" : "IT_STOP",
+    });
+    tell(
+      enabled
+        ? "本站已启用自动翻译，刷新和动态正文也会生效。"
+        : "本站自动翻译已关闭。",
+    );
+  } catch (error) {
+    tell(error.message, true);
+  }
+});
+async function refresh() {
+  if (!tab) return;
+  try {
+    const result = await chrome.tabs.sendMessage(tab.id, { type: "IT_STATUS" });
+    $("progress").textContent =
+      `完成 ${result.completed} · 等待 ${result.waiting} · 失败 ${result.failed}`;
+  } catch {}
+}
+async function initialize() {
+  try {
+    cfg = await message({ type: "CONFIG" });
+    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    $("target").value = cfg.target;
+    $("site").textContent = tab?.url ? new URL(tab.url).hostname : "未选择网页";
+    if (tab && /^https?:\/\//.test(tab.url))
+      $("auto").checked = !!cfg.rules[new URL(tab.url).origin];
+    if (!cfg.paired) tell("请先打开「配对与设置」连接整合包。");
+    else {
+      try {
+        const check = await message({ type: "CHECK" });
+        tell("本地服务已连接 · " + check.model.split("/").at(-1));
+      } catch (error) {
+        tell(error.message, true);
+      }
+    }
+    await refresh();
+    setInterval(refresh, 1500);
+  } catch (error) {
+    tell(error.message, true);
+  }
+}
+initialize();

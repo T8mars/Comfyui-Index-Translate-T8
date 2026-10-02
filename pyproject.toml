@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "index-translate-t8"
+version = "0.1.7"
+description = "Local Index-Translate text translation node for ComfyUI, by T8star-Aix"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "T8star-Aix" }]
+keywords = ["comfyui", "translation", "index-translate", "multilingual"]
+dependencies = [
+  "transformers==5.17.0",
+  "accelerate>=1.10,<2",
+  "safetensors>=0.6",
+  "Pillow>=11",
+  "psutil>=5.9",
+]
+
+[project.urls]
+Repository = "https://github.com/T8mars/Comfyui-Index-Translate-T8"
+Documentation = "https://github.com/T8mars/Comfyui-Index-Translate-T8#readme"
+"Bug Tracker" = "https://github.com/T8mars/Comfyui-Index-Translate-T8/issues"
+Models = "https://huggingface.co/t8star/Index-Translate-Comfy"
+Upstream = "https://github.com/bilibili/Index-Translate"
+
+[tool.comfy]
+PublisherId = "t8star"
+DisplayName = "Index Translate · T8star-Aix"

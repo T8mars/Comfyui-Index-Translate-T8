@@ -1,0 +1,49 @@
+# Index Translate Windows 本地整合包
+
+解压 `IndexTranslate-Windows-2B-offline.zip` 到可写目录，双击 `start.cmd`。浏览器打开 http://127.0.0.1:8098 后即可翻译。包内包含私有 Python、推理依赖和完整官方 2B 模型，无需系统 Python 或 ComfyUI；中文、空格路径和跨盘搬迁已实测。
+
+**By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。启动时每天最多检查一次 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases) 并自动安装较新的代码包；网络不可用时照常启动。更新只覆盖应用代码，保留 `runtime/`、`models/` 和 `data/`。运行中的服务不会被更新打断；可先执行 `stop.cmd`，再运行 `update.cmd` 立即检查并安装。版本升级如需改变 Python 依赖，请获取作者另行分享的新完整包。
+
+`stop.cmd` 停止本包启动的服务；`diagnose.cmd` 输出设备、模型完整性和服务状态。端口被其他程序占用时会提示，不会停止其他进程。移动目录前先停止服务。配置、配对、任务记录和日志保存在 `data`，首次启动自动创建；发行包不携带开发测试的配置或凭据。
+
+0.1.6 修复共享模型管理中的磁盘空间预检：已完整且校验通过的模型可直接使用；校验收据写入失败不会让有效模型失效；损坏或超长的续传文件不再被当作可复用空间。此前的服务身份防护、任务记录清理及加载失败资源回收继续保留。本版 Chrome 扩展请配套 0.1.6 整合包。
+
+0.1.6 WebUI 现采用与本机 IndexTTS 2.5 整合包一致的浅灰、粉蓝视觉风格：渐变标题、四格快捷入口、下划线选项卡、白色编辑卡和底部翻译操作栏。文本翻译、模型、配对和诊断功能保持可用；Chrome 配对页也说明了必须解压扩展 ZIP 并选择含 `manifest.json` 的文件夹。
+
+启动脚本与服务使用操作系统文件锁，避免重复双击启动时覆盖同一包的进程记录；锁随进程退出释放，无需手动删除。畸形 Unicode 和超限分块请求返回明确的校验错误。
+
+## 模型与设备
+
+默认使用相对目录 `models/Index-Translate-2B`，GPU 可用且资源足够时选择 BF16，否则尝试 CPU FP32。设备页可选择 CUDA / CPU，以及 BF16 / FP32 / NF4。NF4 使用 bitsandbytes，在 NVIDIA GPU 上减少显存，译文措辞和质量可能变化。CPU 不支持本包的 NF4 档位。
+
+| 已实测档位 | 短样例生成峰值显存 | 说明 |
+|---|---:|---|
+| 2B CUDA BF16 | 约 4.16 GiB | 中英日双向、代码占位符、取消与截断测试 |
+| 2B CUDA NF4 | 约 1.84 GiB | 相同样例测试；量化措辞存在差异 |
+| 9B CUDA NF4 | 约 7.51 GiB | 七个真实样例与取消、预算测试 |
+| 9B CUDA BF16 | 约 17.62 GiB | 资源余量恢复后完成七个样例和取消、预算测试 |
+| 2B CPU FP32 | 0 | 跨盘搬迁后，外部网络被阻断时真实中英互译 |
+
+以上为当前 RTX 5090 Laptop、默认短文本生成阶段的实测，不含加载瞬时峰值，不代表所有上下文的上限。加载前检查实际可用内存和显存，生成仍可能因其他进程竞争资源失败。9B BF16 需至少约 20 GiB 空闲显存，使用前注意其他模型的占用。原生 Windows 使用正确但较慢的参考运算内核。
+
+9B 独立模型包解压后，在设备页选择 9B 并填写它的目录；无需复制到 2B 目录。也可在设备页从官方 ModelScope / Hugging Face 下载完整 2B 或 9B，支持取消、继续和 SHA256 校验。35B preview 在本次固定快照中缺少分片，下载已明确阻断。
+
+服务串行推理、分标签页排队，任务 API 快速返回任务 ID，前端轮询结果。输出不完整、占位符损坏或上下文超限会明确报错，保留原文并允许重试。空闲默认 60 秒卸载模型，也可手动卸载。CUDA 卸载已验证释放权重和 cuBLAS 缓存；CPU 权重释放后 Windows 的进程堆可能仍保留较大的工作集，运行 `stop.cmd` 可回收整个进程内存。
+
+## Chrome 扩展
+
+解压独立扩展包，在 `chrome://extensions` 开启开发者模式，选择「加载已解压的扩展程序」，选中包含 `manifest.json` 的 `chrome_index_translate` 文件夹。整合包的 Chrome 配对页生成一次性配对码，在扩展设置输入本机地址和配对码。然后在普通网页打开扩展，点击翻译或授予当前站点的自动翻译权限。
+
+配对码有效 5 分钟且只能使用一次。整合包可撤销配对。服务仅监听 127.0.0.1，限制 Host / Origin，扩展凭据仅在可信后台存储；不要把服务反向代理到公网。网页正文与译文保存在本地任务记录和扩展缓存中，可通过关闭服务后删除本包 `data`、在扩展设置清空缓存进行清理。
+
+## 离线与命令行
+
+完整离线包首次启动即可使用。以下命令启用外部网络连接阻断，下载功能在此模式不可用：
+
+```powershell
+.\runtime\python.exe .\run.py --offline --port 8098
+```
+
+直接运行 `run.py` 时在该终端按 Ctrl+C 停止；启动器只管理它自身记录的服务。完整性清单见 `FILE-MANIFEST.json`，精确 Python 依赖见 `requirements.lock.txt`，许可证见 `LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.json` 和 runtime 内各包的许可证。
+
+这是基于 IndexTeam / bilibili 官方模型的社区集成。ComfyUI 节点另行安装，并在 ComfyUI 自己的 Python 中推理。

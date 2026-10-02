@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="ui.css" />
+    <script defer src="options.js"></script>
+    <title>Index Translate 设置</title>
+  </head>
+  <body>
+    <main>
+      <h1>Index Translate 设置</h1>
+      <p class="credit">By T8star-Aix · <a href="https://space.bilibili.com/385085361" target="_blank" rel="noopener noreferrer">B站</a> · <a href="https://www.youtube.com/@T8star-Aix/" target="_blank" rel="noopener noreferrer">YouTube</a></p>
+      <p>网页正文由本机模型处理。配对凭据保存在扩展内部，网页无法读取。</p>
+      <div id="message" class="message" role="status">正在读取设置…</div>
+      <section class="card">
+        <h2>连接本地服务</h2>
+        <label for="endpoint">服务地址</label
+        ><input id="endpoint" placeholder="http://127.0.0.1:8098" /><label
+          for="code"
+          >一次性配对码</label
+        ><input
+          id="code"
+          autocomplete="off"
+          placeholder="在整合包的 Chrome 配对页生成"
+        />
+        <div class="row">
+          <button id="pair">配对</button
+          ><button id="check" class="secondary">检查连接</button>
+        </div>
+        <p>更改服务地址需重新配对。默认只连接本机 127.0.0.1 或 localhost。</p>
+      </section>
+      <section class="card">
+        <h2>翻译偏好</h2>
+        <label for="source">原文语言</label
+        ><select id="source"></select
+        ><label for="target">译文语言</label
+        ><select id="target"></select
+        ><label class="check"
+          ><input
+            type="checkbox"
+            id="viewport"
+            checked
+          />优先翻译视口附近的正文，滚动时继续</label
+        ><label for="glossary">术语表（JSON 对象）</label
+        ><textarea id="glossary" rows="4" spellcheck="false">{}</textarea>
+        <div class="row">
+          <button id="save">保存偏好</button
+          ><button id="clear" class="secondary">清空译文缓存</button>
+        </div>
+        <p>
+          双语显示保留原文 DOM。代码、链接、公式以占位符保留；iframe 和 Shadow
+          DOM 不在当前翻译范围。
+        </p>
+      </section>
+      <section class="card">
+        <h2>自动翻译站点</h2>
+        <p>在网页上打开扩展，勾选「自动翻译这个站点」并授予本站权限。</p>
+        <ul id="rules" class="rules"></ul>
+      </section>
+      <section class="card">
+        <h2>扩展更新</h2>
+        <p id="update-status">正在检查版本…</p>
+        <div class="row"><button id="check-update" class="secondary">检查更新</button><a id="release-link" href="https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest" target="_blank" rel="noopener noreferrer">查看最新版本</a></div>
+        <p>解压加载的扩展无法自行替换代码；发现新版后请下载新版 ZIP、解压到原文件夹并在 Chrome 扩展页点击「重新加载」。</p>
+      </section>
+      <p class="foot">
+        译文缓存仅保存在本机。不同服务、模型版本、推理精度、语言或术语设置分别缓存。
+      </p>
+    </main>
+  </body>
+</html>

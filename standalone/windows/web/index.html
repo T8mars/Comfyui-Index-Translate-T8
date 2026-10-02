@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Index Translate · 本地翻译</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="hero-title"><span class="eyebrow">INDEX TRANSLATE · DESKTOP</span><h1>Index Translate</h1></div>
+    <div class="hero-copy"><p>多语言、本地运行的文本与网页翻译</p><p class="creator">By T8star-Aix · <a href="https://space.bilibili.com/385085361" target="_blank" rel="noopener noreferrer">B站</a> · <a href="https://www.youtube.com/@T8star-Aix/" target="_blank" rel="noopener noreferrer">YouTube</a></p><div id="service" class="service-status">正在连接</div></div>
+  </header>
+
+  <div class="quickbar" aria-label="快捷入口">
+    <button type="button" class="quick-action" data-open-panel="translate" data-focus="input">输入文本</button>
+    <button type="button" class="quick-action" data-open-panel="models">模型与设备</button>
+    <button type="button" class="quick-action" data-open-panel="browser">Chrome 配对</button>
+    <button type="button" class="quick-action" data-open-panel="diagnostics">运行诊断</button>
+  </div>
+
+  <nav aria-label="功能">
+    <button type="button" class="tab active" data-panel="translate">文本翻译</button>
+    <button type="button" class="tab" data-panel="models">模型与设备</button>
+    <button type="button" class="tab" data-panel="browser">Chrome 配对</button>
+    <button type="button" class="tab" data-panel="diagnostics">运行诊断</button>
+  </nav>
+  <p id="notice" role="status" class="notice" hidden></p>
+
+  <section id="translate" class="panel">
+    <div class="title-row"><div><h2>文本翻译</h2><p>在本机完成翻译。网页自动翻译也使用这套模型。</p></div><span id="model-name" class="badge muted">模型未加载</span></div>
+    <div class="editors">
+      <div class="editor"><div class="editor-bar"><label for="input">原文</label><span id="length">0 字符</span></div><textarea id="input" placeholder="输入或粘贴需要翻译的文本…" spellcheck="false"></textarea></div>
+      <div class="editor output"><div class="editor-bar"><label for="output">译文</label><button type="button" id="copy" class="text-button">复制</button></div><textarea id="output" readonly placeholder="译文会显示在这里"></textarea></div>
+    </div>
+    <div class="language-row">
+      <label>原文语言<select id="source"></select></label>
+      <button type="button" id="swap" class="secondary small" title="交换语言">⇄</button>
+      <label>译文语言<select id="target"></select></label>
+      <label class="budget">输出预算<select id="budget"><option value="256">256 tokens</option><option value="512" selected>512 tokens</option><option value="1024">1024 tokens</option><option value="2048">2048 tokens</option></select></label>
+    </div>
+    <details class="glossary"><summary>术语表（可选）</summary><p>以 JSON 对象填写固定译法，例如 {"Index":"索引"}。</p><textarea id="glossary" rows="3" spellcheck="false">{}</textarea></details>
+    <div class="action-row"><div class="action-copy"><strong>文本翻译</strong><span id="progress" role="status">准备就绪</span></div><div class="action-buttons"><button type="button" id="cancel" class="secondary" disabled>取消</button><button type="button" id="submit" class="primary">开始翻译</button></div></div>
+  </section>
+
+  <section id="models" class="panel" hidden>
+    <div class="title-row"><div><h2>选择本地模型</h2><p>首次下载需要联网。文件完整后可离线翻译。</p></div><button type="button" id="unload" class="secondary">释放模型</button></div>
+    <div class="settings-grid"><label>模型版本<select id="model-id"></select></label><label>推理设备<select id="device"><option value="auto">自动选择</option><option value="cuda">NVIDIA GPU</option><option value="cpu">CPU</option></select></label><label>精度<select id="precision"><option value="auto">自动</option><option value="bf16">BF16</option><option value="fp32">FP32</option><option value="nf4">NF4（省显存，可能降低质量）</option></select></label><label>上下文预算<input id="context" type="number" min="256" max="32768" value="4096"></label><label class="wide">模型目录<input id="model-path" placeholder="models/Index-Translate-2B"></label><label>闲置释放（秒）<input id="idle" type="number" min="5" max="3600" value="60"></label></div>
+    <div class="settings-action"><span>相对目录随整合包一起移动；也可以填写完整目录。</span><div><button type="button" id="verify" class="secondary">校验文件</button><button type="button" id="save-settings" class="primary">保存设置</button></div></div>
+    <div class="download-box"><h3>下载官方模型</h3><p>2B 约 4.57 GB；9B 约 19.33 GB。35B 当前公开版本缺少分片，暂不可下载。</p><div class="download-controls"><select id="download-model"></select><select id="download-source"><option value="modelscope">ModelScope</option><option value="huggingface">Hugging Face</option></select><button type="button" id="download-start" class="secondary">下载 / 继续</button><button type="button" id="download-cancel" class="text-button">取消下载</button></div><progress id="download-progress" value="0" max="1"></progress><p id="download-status">暂无下载</p></div>
+  </section>
+
+  <section id="browser" class="panel" hidden>
+    <div class="title-row"><div><h2>连接 Chrome 网页翻译</h2><p>在扩展设置中输入当前服务地址和一次性配对码。</p></div></div>
+    <div class="browser-guide"><strong>安装扩展</strong><ol><li>先解压 Chrome 扩展 ZIP。Chrome 的「加载已解压的扩展程序」不能选择 ZIP 文件。</li><li>打开 <code>chrome://extensions</code>，启用开发者模式，选择直接包含 <code>manifest.json</code> 的文件夹。</li><li>点击下方按钮生成配对码，复制到扩展设置完成配对。</li><li>在网页上点击翻译，或将当前站点加入自动翻译列表。</li></ol></div>
+    <div class="pair-card"><span>服务地址</span><code id="endpoint"></code><button type="button" id="pair" class="primary">生成配对码</button><code id="pair-code">尚未生成</code><span id="pair-expiry">配对码仅使用一次，5 分钟内有效。</span></div>
+    <button type="button" id="revoke" class="secondary danger">撤销所有扩展配对</button>
+  </section>
+
+  <section id="diagnostics" class="panel" hidden><div class="title-row"><div><h2>运行诊断</h2><p>查看本机设备与内存，定位加载失败原因。</p></div><button type="button" id="refresh-hardware" class="secondary">刷新设备信息</button></div><pre id="hardware">点击刷新读取设备信息。</pre><details><summary>服务状态</summary><pre id="raw-status"></pre></details></section>
+
+  <footer>Index Translate · 本地推理 · By T8star-Aix<span id="footer-model"></span></footer>
+</main>
+</body>
+</html>

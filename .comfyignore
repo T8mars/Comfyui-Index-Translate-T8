@@ -1,0 +1,5 @@
+# Registry package contains only the independent ComfyUI node.
+standalone/
+.github/
+scripts/
+*.zip

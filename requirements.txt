@@ -1,0 +1,6 @@
+# Uses the host's existing CUDA-compatible torch. Do not silently replace it.
+transformers==5.17.0
+accelerate>=1.10,<2
+safetensors>=0.6
+Pillow>=11
+psutil>=5.9
