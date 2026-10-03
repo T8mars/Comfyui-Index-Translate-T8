@@ -39,7 +39,8 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome now adds subtitle, speech, and stop controls inside video players. The page bubble defaults to the right edge and closes its panel on outside clicks. Vimeo caption messaging is supported with local speech fallback. Pending speech starts are serialized to prevent BUSY races. First tab audio capture requires clicking the Chrome toolbar extension action; the inline controls explain missing authorization. Compatible with the 0.1.14 standalone runtime. Existing model folders are read directly without copying. Code ZIPs exclude runtimes and weights. Model files: https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome now adds subtitle, speech, and stop controls inside video players. The page bubble defaults to the right edge and closes its panel on outside clicks. Vimeo caption messaging is supported with local speech fallback. Pending speech starts are serialized to prevent BUSY races. First tab audio capture requires clicking the Chrome toolbar extension action; the inline controls explain missing authorization. Compatible with the 0.1.14 standalone runtime. Existing model folders are read directly without copying. Code ZIPs exclude runtimes and weights. Model files: https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
 
   registry:
     needs: release
