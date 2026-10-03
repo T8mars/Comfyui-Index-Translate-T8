@@ -24,6 +24,8 @@ Version 0.1.14 lets the standalone bundle open existing R2T2 Q8 GGUF files direc
 
 Version 0.1.15 places the page bubble against the right edge and closes its panel on outside clicks. Each visible player has subtitle, speech, and stop buttons. Vimeo captions use its official player messaging API, with local R2T2 audio as a fallback. Speech starts wait for cancellation of a prior pending start to prevent BUSY races. Chrome requires an extension action invocation before first capturing a tab; an inline notice explains this when authorization is missing. It remains compatible with the 0.1.14 standalone service and external model paths.
 
+Version 0.1.16 fixes controls disappearing after refresh. Static content scripts show the small Tiffany blue page bubble and subtitle, speech, and stop controls on ordinary HTTP/HTTPS pages without first invoking the toolbar. Click the bubble to start translation. Resident controls do not submit page text or capture audio until explicitly started; per-site automatic translation remains opt-in. Reload an updated unpacked extension, allow the new website permission, select site access on all sites, and refresh the page. Pairing and preferences are preserved. Pending video translations display only the source subtitle without large translating or recognizing labels. Tab audio capture still follows Chrome authorization rules. Compatible with the existing 0.1.14 Windows service; the complete offline Windows bundle remains at 0.1.15.
+
 ## Credits and links
 
 By **T8star-Aix**. This is an independent community integration; the original project and model credits belong to IndexTeam / bilibili. See [NOTICE](NOTICE) and [LICENSE](LICENSE). The Hugging Face model mirror retains the upstream files and cards.

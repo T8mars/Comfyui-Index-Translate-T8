@@ -122,14 +122,13 @@
       controls.set(item,control);
       const run = async (action, forceSpeech = false) => {
         const stamp = ++controlRevision;
-        status.textContent = action === "stop" ? "正在停止…" : "正在启动翻译…";
+        status.textContent = "";
         try {
           const reply = await chrome.runtime.sendMessage({type:"VIDEO_CONTROL",action,forceSpeech,
             targetIndex:[...document.querySelectorAll("video,iframe")].indexOf(item)});
           if (stamp !== controlRevision) return;
           if (!reply?.ok) throw new Error(reply?.error || "视频翻译启动失败");
-          status.textContent = reply.value.note || (action === "stop" ? "" :
-            reply.value.mode === "captions" ? "字幕翻译已开启，播放视频后显示译文" : "正在加载本地语音模型；请播放并取消静音");
+          status.textContent = reply.value.note || "";
         } catch (error) { if (stamp === controlRevision) status.textContent = error.message; }
         updateControls();
       };
@@ -197,11 +196,11 @@
       small.textContent = source;
       box.append(small);
     }
-    box.append(document.createTextNode(translated || note || "翻译中…"));
-    hasSubtitle = true;
+    if (translated) box.append(document.createTextNode(translated));
+    hasSubtitle = !!(source || translated);
     position();
     const control = controls.get(video);
-    if (control) control.status.textContent = note || (translated ? "翻译中" : "正在翻译字幕…");
+    if (control) control.status.textContent = note;
   }
 
   function chosenVideo() {
@@ -309,7 +308,7 @@
       const channel = vimeoChannel(video);
       if (channel) {
         provider = channel;
-        show("", "", "正在读取播放器字幕…");
+        show("");
         try {
           const tracks = await channel.call("getTextTracks");
           if (lifecycle !== videoLifecycle) return {mode:"none",reason:"视频翻译已取消"};
@@ -335,9 +334,9 @@
       formerMode = track.mode;
       track.mode = "hidden";
       track.addEventListener("cuechange", cueChanged);
-      show("", "", "字幕翻译已开启，播放视频后显示译文；无字幕时可点「语音译」");
+      show("");
       cueChanged();
-    } else if (!lastCue) show("", "", mode === "captions" ? "字幕翻译已开启，播放视频后显示译文" : "准备识别视频声音…");
+    } else if (!lastCue) show("");
     timer = setInterval(() => {
       if (video && !video.isConnected) { stop(true); return; }
       position();
@@ -378,14 +377,14 @@
     if (message.type === "IT_VIDEO_SPEECH" && active && mode === "speech") {
       const stamp = ++revision;
       const finalId = ++speechFinalId;
-      show(message.source, message.text || "", message.note || "翻译中…");
+      show(message.source, message.text || "", message.note || "");
       if (message.source && !message.text && !message.note)
         translate(message.source, stamp, finalId);
       respond({shown:true});
     }
     if (message.type === "IT_VIDEO_SPEECH_PREVIEW" && active && mode === "speech") {
       ++revision;
-      show(message.source, "", "识别中…");
+      show(message.source);
       respond({shown:true});
     }
   });

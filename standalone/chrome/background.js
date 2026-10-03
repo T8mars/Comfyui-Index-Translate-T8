@@ -306,7 +306,7 @@ async function audioStartNow(tabId, streamId, cfg, generation) {
     session.sid = result.session_id;
     await chrome.runtime.sendMessage({type:"OFFSCREEN_READY",tabId,captureId:session.captureId});
     if (audioSessions.get(tabId) !== session) return;
-    await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note:"正在识别视频声音…"});
+    await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",ready:true});
   } catch (error) {
     if (audioSessions.get(tabId) === session) {
       await audioStop(tabId, session);
@@ -358,28 +358,15 @@ function registrations() {
   return result;
 }
 async function reconcileRegistrations() {
-  const cfg = await config();
+  // Static content scripts show controls on every normal webpage. Remove
+  // legacy per-site registrations during upgrades; cfg.rules only controls
+  // automatic translation, not whether buttons appear.
   const existing = await chrome.scripting.getRegisteredContentScripts();
-  if (existing.length)
+  const legacy = existing.filter((item) => item.id.startsWith("site-"));
+  if (legacy.length)
     await chrome.scripting.unregisterContentScripts({
-      ids: existing.map((item) => item.id),
+      ids: legacy.map((item) => item.id),
     });
-  const scripts = [];
-  for (const origin of Object.keys(cfg.rules)) {
-    if (
-      (await chrome.permissions.contains({ origins: [origin + "/*"] }))
-    )
-      scripts.push({
-        id: "site-" + (await sha(origin)),
-        matches: [origin + "/*"],
-        js: ["content.js", "video.js"],
-        css: ["content.css"],
-        runAt: "document_idle",
-        allFrames: false,
-        persistAcrossSessions: true,
-      });
-  }
-  if (scripts.length) await chrome.scripting.registerContentScripts(scripts);
 }
 async function cacheKey(cfg, status, paragraph) {
   return sha(

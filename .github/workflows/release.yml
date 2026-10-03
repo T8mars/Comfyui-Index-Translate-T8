@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome now adds subtitle, speech, and stop controls inside video players. The page bubble defaults to the right edge and closes its panel on outside clicks. Vimeo caption messaging is supported with local speech fallback. Pending speech starts are serialized to prevent BUSY races. First tab audio capture requires clicking the Chrome toolbar extension action; the inline controls explain missing authorization. Compatible with the 0.1.14 standalone runtime. Existing model folders are read directly without copying. Code ZIPs exclude runtimes and weights. Model files: https://huggingface.co/t8star/Index-Translate-Comfy/tree/main."
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome 0.1.16 fixes page and video controls disappearing after refresh. A small Tiffany blue page bubble and subtitle, speech, and stop controls load automatically on ordinary HTTP/HTTPS pages. Click the bubble to translate. Pending video translations display the source subtitle without large translating or recognizing labels. Reload the unpacked extension and allow website access on all sites once after updating. No page text or audio is submitted merely by showing controls; automatic translation remains opt-in per site. Pairing and preferences are preserved. Compatible with the 0.1.14 Windows service; offline Windows bundles remain at 0.1.15. Tab audio capture still requires Chrome authorization. Code ZIPs exclude runtimes and weights."
 
   registry:
     needs: release
