@@ -40,7 +40,7 @@ class IndexTranslateText:
             "source": ("STRING", {"default": "auto"}),
             "target": ("STRING", {"default": "en"}),
             "device": (["auto", "cuda", "cpu"],),
-            "precision": (["auto", "bf16", "fp32", "nf4"],),
+            "precision": (["auto", "bf16", "fp32", "nf4", "convrot-int8"],),
             "output_budget": ("INT", {"default": 1024, "min": 1, "max": 32704}),
             "context_limit": ("INT", {"default": 4096, "min": 256, "max": 32768}),
         }, "optional": {"glossary": ("STRING", {"multiline": True, "default": "{}"})}}

@@ -41,7 +41,7 @@ def archive(name: str, files: list[pathlib.Path], base: pathlib.Path) -> pathlib
 
 node_files = [ROOT / name for name in (
     "__init__.py", "nodes.py", "download_model.py", "pyproject.toml", "requirements.txt",
-    "requirements-nf4.txt", "README.md", "README.zh-CN.md", "README_EN.md", "LICENSE", "NOTICE",
+    "requirements-nf4.txt", "requirements-convrot.txt", "install_convrot.py", "ACCELERATION-DEPS.json", "README.md", "README.zh-CN.md", "README_EN.md", "LICENSE", "NOTICE",
 )] + files_under(ROOT / "_vendor") + files_under(ROOT / "examples")
 assets = [
     archive(f"IndexTranslate-ComfyUI-v{VERSION}.zip", node_files, ROOT),

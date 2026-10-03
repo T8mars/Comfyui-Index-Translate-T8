@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "T8 Index Translate 本地网页翻译",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "使用本机 Index-Translate 翻译网页正文、HTML5 视频字幕和视频声音。",
   "minimum_chrome_version": "120",
   "permissions": [
@@ -18,9 +18,17 @@
   ],
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js", "video.js"],
-      "css": ["content.css"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js",
+        "video.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }

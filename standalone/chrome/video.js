@@ -11,6 +11,23 @@
   const controls = new Map();
   let controlRevision = 0;
   let provider = null, videoLifecycle = 0;
+  let foregroundToken = null;
+  let lastSpeechTranslation = '';
+  const prefetches = new Map();
+  let cancellationBarrier = Promise.resolve();
+  let speechQueue = [], speechBusy = false, speechPumpGeneration = 0;
+
+  function cancelForeground() {
+    if (foregroundToken) chrome.runtime.sendMessage({type:'VIDEO_CANCEL',tokens:[foregroundToken]}).catch(() => {});
+    foregroundToken = null;
+  }
+  function cancelVideoRequests() {
+    cancelForeground();
+    prefetches.clear();
+    cancellationBarrier = cancellationBarrier.then(() =>
+      chrome.runtime.sendMessage({type:'VIDEO_CANCEL'})).catch(() => {});
+    return cancellationBarrier;
+  }
 
   function vimeoChannel(item) {
     if (item?.tagName !== "IFRAME") return null;
@@ -224,6 +241,7 @@
   async function translate(text, stamp, finalId = null) {
     const current = () => active && (finalId === null ? stamp === revision : finalId === speechFinalId);
     try {
+      await cancellationBarrier;
       const scope = await videoScope();
       if (!current()) return;
       adoptScope(scope);
@@ -231,17 +249,98 @@
       const key = scope + "\n" + text;
       let translated = cache.get(key);
       if (!translated) {
-        const reply = await chrome.runtime.sendMessage({type:"VIDEO_TRANSLATE",text});
+        const token = crypto.randomUUID();
+        foregroundToken = token;
+        const reply = await chrome.runtime.sendMessage({type:"VIDEO_TRANSLATE",text,token});
+        if (foregroundToken === token) foregroundToken = null;
         if (!reply?.ok) throw new Error(reply?.error || "翻译失败");
         translated = reply.value.text;
         if ((await videoScope()) !== scope) return;
         if (cache.size > 200) cache.delete(cache.keys().next().value);
         cache.set(key, translated);
       }
-      if (current()) show(text, translated);
+      if (current()) {
+        if (finalId !== null) lastSpeechTranslation = translated;
+        show(text, translated);
+      }
     } catch (error) {
       if (current()) show(text, "", error.message);
     }
+  }
+
+  async function prefetchCues() {
+    await cancellationBarrier;
+    if (!active || !track?.cues || !video || video.paused || mode !== 'captions') return;
+    const lifecycle = videoLifecycle, scope = cacheScope;
+    if (!scope) return;
+    const now = video.currentTime;
+    const future = [...track.cues].filter(cue => cue.startTime > now && cue.startTime <= now + 10).slice(0,3);
+    const wanted = new Set(future.map(cue => cue.text.replace(/<[^>]*>/g,'').trim().slice(0,1200)));
+    for (const [text, token] of prefetches) {
+      if (!wanted.has(text) && text !== lastCue) {
+        prefetches.delete(text);
+        chrome.runtime.sendMessage({type:'VIDEO_CANCEL',tokens:[token]}).catch(() => {});
+      }
+    }
+    for (const text of wanted) {
+      const key = scope + '\n' + text;
+      if (!text || cache.has(key) || prefetches.has(text) || prefetches.size >= 3) continue;
+      const token = crypto.randomUUID();
+      prefetches.set(text,token);
+      chrome.runtime.sendMessage({type:'VIDEO_TRANSLATE',text,token,prefetch:true}).then(reply => {
+        if (active && videoLifecycle === lifecycle && cacheScope === scope && reply?.ok) {
+          if (cache.size >= 200) cache.delete(cache.keys().next().value);
+          cache.set(key,reply.value.text);
+        }
+      }).catch(() => {}).finally(() => {
+        if (prefetches.get(text) === token) prefetches.delete(text);
+      });
+    }
+  }
+
+  function seeked() {
+    cancelVideoRequests();
+    ++revision;
+    ++speechFinalId;
+    speechQueue = []; speechBusy = false; ++speechPumpGeneration;
+    lastCue = '';
+    hasSubtitle = false;
+    if (host) host.style.display = 'none';
+    if (mode === 'captions') { cueChanged(); prefetchCues(); }
+  }
+
+  function enqueueSpeech(source) {
+    if (speechQueue.reduce((n,text) => n + text.length,0) + source.length > 12000) {
+      show(source,'','语音译文积压，请暂停视频后重试');
+      chrome.runtime.sendMessage({type:'VIDEO_AUDIO_STOP_PAGE'}).catch(() => {});
+      return false;
+    }
+    // A long final tail must obey the same 1200 UTF-16 unit API bound.
+    while (source.length > 1200) {
+      let end = 1200;
+      if (/^[\uD800-\uDBFF]$/.test(source[end-1]) && /^[\uDC00-\uDFFF]$/.test(source[end])) --end;
+      const boundary = Math.max(source.lastIndexOf(' ',end-1),source.lastIndexOf('\n',end-1),source.lastIndexOf('。',end-1));
+      if (boundary >= 600) end = boundary + 1;
+      speechQueue.push(source.slice(0,end));
+      source = source.slice(end);
+    }
+    if (source) speechQueue.push(source);
+    if (!speechBusy) pumpSpeech();
+    return true;
+  }
+  async function pumpSpeech() {
+    const generation = speechPumpGeneration;
+    speechBusy = true;
+    try {
+      while (active && mode === 'speech' && generation === speechPumpGeneration && speechQueue.length) {
+        let text = speechQueue.shift();
+        while (speechQueue.length && text.length + speechQueue[0].length + 1 <= 1200)
+          text += '\n' + speechQueue.shift();
+        const finalId = ++speechFinalId;
+        if (!lastSpeechTranslation) show(text);
+        await translate(text, ++revision, finalId);
+      }
+    } finally { if (generation === speechPumpGeneration) speechBusy = false; }
   }
 
   async function videoScope() {
@@ -256,6 +355,7 @@
     const changed = !!cacheScope;
     cacheScope = scope;
     if (!changed) return;
+    cancelVideoRequests();
     cache.clear();
     ++revision;
     ++speechFinalId;
@@ -284,6 +384,7 @@
     const text = value.replace(/<[^>]*>/g, "").trim().slice(0, 1200);
     if (text === lastCue) return;
     lastCue = text;
+    cancelForeground();
     const stamp = ++revision;
     if (!text) { hasSubtitle = false; if (host) host.style.display = "none"; return; }
     show(text);
@@ -297,6 +398,7 @@
       ? [...document.querySelectorAll("video,iframe")][targetIndex] : chosenVideo();
     if (!video || !visible(video)) { video = null; return {mode:"none",reason:"未找到可见视频，请滚动到播放器再启动"}; }
     active = true;
+    lastSpeechTranslation = '';
     lastCue = "";
     cacheScope = "";
     cache.clear();
@@ -337,10 +439,12 @@
       show("");
       cueChanged();
     } else if (!lastCue) show("");
+    video.addEventListener('seeking', seeked);
     timer = setInterval(() => {
       if (video && !video.isConnected) { stop(true); return; }
       position();
       if (mode === "captions") cueChanged();
+      if (mode === 'captions') prefetchCues();
       refreshScope();
     }, 1000);
     updateControls();
@@ -350,7 +454,11 @@
   function stop(notify = false) {
     ++videoLifecycle;
     const wasSpeech = notify && active && mode === "speech";
+    if (active) cancelVideoRequests();
+    if (video) video.removeEventListener('seeking', seeked);
     active = false;
+    speechQueue = []; speechBusy = false; ++speechPumpGeneration;
+    lastSpeechTranslation = '';
     hasSubtitle = false;
     ++revision;
     ++speechFinalId;
@@ -375,16 +483,14 @@
     }
     if (message.type === "IT_VIDEO_STOP") { stop(); respond({stopped:true}); }
     if (message.type === "IT_VIDEO_SPEECH" && active && mode === "speech") {
-      const stamp = ++revision;
-      const finalId = ++speechFinalId;
-      show(message.source, message.text || "", message.note || "");
-      if (message.source && !message.text && !message.note)
-        translate(message.source, stamp, finalId);
-      respond({shown:true});
+      if (!lastSpeechTranslation || message.text || message.note)
+        show(message.source, message.text || "", message.note || "");
+      const queued = message.source && !message.text && !message.note ? enqueueSpeech(message.source) : true;
+      respond({shown:true,queued});
     }
     if (message.type === "IT_VIDEO_SPEECH_PREVIEW" && active && mode === "speech") {
       ++revision;
-      show(message.source);
+      if (!lastSpeechTranslation) show(message.source);
       respond({shown:true});
     }
   });

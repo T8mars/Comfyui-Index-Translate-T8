@@ -41,10 +41,30 @@ def safe_file(root: Path, name: str) -> Path:
     return path
 
 
+def model_revision(root: str | Path, model_id: str) -> str:
+    """Cheap cache identity; full file verification still happens before load."""
+    spec = catalog()[model_id]
+    manifest = Path(root) / 'index-quantization.json'
+    if not manifest.is_file():
+        return spec['revision']
+    with manifest.open('rb') as stream:
+        raw = stream.read(2 * 1024 * 1024 + 1)
+    if len(raw) > 2 * 1024 * 1024:
+        raise ValueError('量化清单过大')
+    data = json.loads(raw)
+    if (not isinstance(data, dict) or data.get('schema') != 1 or data.get('format') != 'convrot-int8'
+            or data.get('source_model_id') != model_id or data.get('source_revision') != spec['revision']):
+        raise ValueError('量化模型来源与所选型号不匹配')
+    return spec['revision'] + ':convrot-int8:' + hashlib.sha256(raw).hexdigest()
+
+
 def inspect_model(root: str | Path, model_id: str | None = None, verify: bool = False,
                   cancel: threading.Event | None = None) -> dict:
     root = Path(root).resolve()
     models = catalog()
+    if (root / 'index-quantization.json').is_file():
+        from .convrot import inspect_quantized_model
+        return inspect_quantized_model(root, model_id, verify, cancel, models)
     if model_id is None:
         config_path = root / "config.json"
         candidates = []

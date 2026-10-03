@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "Chrome 0.1.16 fixes page and video controls disappearing after refresh. A small Tiffany blue page bubble and subtitle, speech, and stop controls load automatically on ordinary HTTP/HTTPS pages. Click the bubble to translate. Pending video translations display the source subtitle without large translating or recognizing labels. Reload the unpacked extension and allow website access on all sites once after updating. No page text or audio is submitted merely by showing controls; automatic translation remains opt-in per site. Pairing and preferences are preserved. Compatible with the 0.1.14 Windows service; offline Windows bundles remain at 0.1.15. Tab audio capture still requires Chrome authorization. Code ZIPs exclude runtimes and weights."
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "ConvRot INT8 2B/9B support, independent model paths, and pinned Windows acceleration dependencies. New full Windows runtime required for acceleration. Warm up before viewing. Video priority, persistent exact cache, subtitle prefetch, long polling and stable speech phrase delivery. Reload Chrome once after updating. Code ZIPs exclude runtimes and weights; ComfyUI runs independently."
 
   registry:
     needs: release

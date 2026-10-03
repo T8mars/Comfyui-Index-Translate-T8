@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "torch_preserved": "2.10.0+cu128",
+  "standalone_python": "3.12.14",
+  "environment": "Windows x64 RTX 5090 Laptop SM120",
+  "packages": [
+    {
+      "name": "comfy-kitchen",
+      "version": "0.2.37",
+      "installed": "0.2.37",
+      "metadata_source": "https://pypi.org/pypi/comfy-kitchen/0.2.37/json",
+      "wheels": [
+        {
+          "file": "comfy_kitchen-0.2.37-cp310-cp310-win_amd64.whl",
+          "sha256": "4426b19ac653254f72f45fac0bca1618d45f37622c11bd93a236fd7236dbbb76",
+          "url": "https://files.pythonhosted.org/packages/eb/8d/437e821b7a97b47865a31e57255b461450037f1031565246fd519076f0cb/comfy_kitchen-0.2.37-cp310-cp310-win_amd64.whl",
+          "bytes": 48757611
+        },
+        {
+          "file": "comfy_kitchen-0.2.37-cp312-abi3-win_amd64.whl",
+          "sha256": "31e1b59351d10374b6351f62a9130712e0cb06c90f059c25522ac1f79249fdb8",
+          "url": "https://files.pythonhosted.org/packages/bf/0a/96c1141180bdc4dce2664cd9316390069c66c6f03e79963a17f252b4b730/comfy_kitchen-0.2.37-cp312-abi3-win_amd64.whl",
+          "bytes": 48759733
+        },
+        {
+          "file": "comfy_kitchen-0.2.37-py3-none-any.whl",
+          "sha256": "b626bd51ff45937f1446accf078ccea9d11c3686ffa0c89b0c1305d66d765afe",
+          "url": "https://files.pythonhosted.org/packages/9e/08/0a904ae1a1b82f57e7990eee8d93d48466a185934aa585cc625cdb27761e/comfy_kitchen-0.2.37-py3-none-any.whl",
+          "bytes": 232534
+        }
+      ]
+    },
+    {
+      "name": "nvidia-cublas",
+      "version": "13.2.2.2",
+      "installed": "13.2.2.2",
+      "metadata_source": "https://pypi.org/pypi/nvidia-cublas/13.2.2.2/json",
+      "wheels": [
+        {
+          "file": "nvidia_cublas-13.2.2.2-py3-none-win_amd64.whl",
+          "sha256": "ba7b48dbb39336c9846afdcc70bf588778eddc8022600b17b4235b4e1b30dd8c",
+          "url": "https://files.pythonhosted.org/packages/87/09/9e98629b67bc85373edeaa939fffdc950190d33ade75da8fe7a9085bb130/nvidia_cublas-13.2.2.2-py3-none-win_amd64.whl",
+          "bytes": 385515253
+        }
+      ]
+    },
+    {
+      "name": "triton-windows",
+      "version": "3.6.0.post26",
+      "installed": "3.6.0.post26",
+      "metadata_source": "https://pypi.org/pypi/triton-windows/3.6.0.post26/json",
+      "wheels": [
+        {
+          "file": "triton_windows-3.6.0.post26-cp310-cp310-win_amd64.whl",
+          "sha256": "7a2ad7e8414a581c9d3c58991f86fa49af70d9f7ef464d9349e6c0e8e23af9f5",
+          "url": "https://files.pythonhosted.org/packages/c1/56/1028998fbad2eaff607ad682cedbcd006ddd326bb0f19ddf18461155b900/triton_windows-3.6.0.post26-cp310-cp310-win_amd64.whl",
+          "bytes": 47399782
+        },
+        {
+          "file": "triton_windows-3.6.0.post26-cp312-cp312-win_amd64.whl",
+          "sha256": "189d8c57911aa9d2ff983a715e5c967b325f576307db60924cab22b501a36515",
+          "url": "https://files.pythonhosted.org/packages/62/1e/8d9814e67ba3f20094cf3c69e7815a491f20beb86469a647550ba86728b0/triton_windows-3.6.0.post26-cp312-cp312-win_amd64.whl",
+          "bytes": 47402104
+        }
+      ]
+    },
+    {
+      "name": "fla-core",
+      "version": "0.5.2",
+      "installed": "0.5.2",
+      "metadata_source": "https://pypi.org/pypi/fla-core/0.5.2/json",
+      "wheels": [
+        {
+          "file": "fla_core-0.5.2-py3-none-any.whl",
+          "sha256": "5e830c85bad3d0d34677f98ac7074d08687a3756f0f0499d95ceb96eb6920761",
+          "url": "https://files.pythonhosted.org/packages/2d/ed/dfe19c4da779957eb6a42a26812f9b4e2280bf757a17a71933ff59ffcb98/fla_core-0.5.2-py3-none-any.whl",
+          "bytes": 819225
+        }
+      ]
+    },
+    {
+      "name": "einops",
+      "version": "0.8.2",
+      "installed": "0.8.2",
+      "metadata_source": "https://pypi.org/pypi/einops/0.8.2/json",
+      "wheels": [
+        {
+          "file": "einops-0.8.2-py3-none-any.whl",
+          "sha256": "54058201ac7087911181bfec4af6091bb59380360f069276601256a76af08193",
+          "url": "https://files.pythonhosted.org/packages/2a/09/f8d8f8f31e4483c10a906437b4ce31bdf3d6d417b73fe33f1a8b59e34228/einops-0.8.2-py3-none-any.whl",
+          "bytes": 65638
+        }
+      ]
+    }
+  ],
+  "activation": "runtime/Lib/site-packages/index_translate_speed.pth",
+  "actual_backend": "comfy-kitchen native CUDA INT8, cuBLASLt 13, FLA/Triton GDN+causal convolution, static-cache torch.compile",
+  "rollback": "remove only index_translate_speed.pth and select the original BF16 model; original torch is unchanged",
+  "proof": "verification/video-speed-int8/kernel-numerics.json and convrot-compiled-fixed-cache.json"
+}

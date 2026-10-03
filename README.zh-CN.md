@@ -1,5 +1,11 @@
 # ComfyUI Index Translate
 
+0.1.17 支持真正的 CONVROT INT8。下载完整 `Index-Translate-2B-ConvRot-INT8` / `Index-Translate-9B-ConvRot-INT8` 目录，原样放入 `ComfyUI/models/index_translate/`；在节点 `model_path` 选择该目录或填写任意完整目录的绝对路径，精度选择 `auto` 或 `convrot-int8`。无需改名。配置、分词器、全部权重分片和 `index-quantization.json` 必须齐全。权重约 2.67 / 10.37 GB。
+
+Windows 用 **ComfyUI 自己的 Python** 执行 `install_convrot.py`，安装固定官方 comfy-kitchen 0.2.37、NVIDIA cuBLAS 13.2.2.2 wheel 到独立目录，不替换宿主 torch。新进程生效；回退只需移除 `index_translate_convrot.pth` 并重启。其他系统用宿主 Python 安装 `requirements-convrot.txt`。INT8 本版需要 NVIDIA CUDA，CPU 仍用官方模型。真实 Python 3.10 / torch 2.7/cu128 宿主工作流已通过，整合包两个端口被阻断时仍能独立翻译。
+
+节点仍在执行结束后释放模型。Windows 常驻服务的静态缓存编译速度不适用于该节点；此宿主 GDN 使用正确的参考路径，首次工作流含加载耗时。不得借用整合包 Python、依赖目录或 HTTP 服务。
+
 将本目录复制到 `ComfyUI/custom_nodes/ComfyUI-Index-Translate`，用 **ComfyUI 自己的 Python** 安装 `requirements.txt`，然后重启 ComfyUI。依赖文件不安装或覆盖 torch；CUDA 运行需要支持当前显卡的 PyTorch。
 
 节点直接加载本地 Index-Translate 模型。无需启动 Windows 整合包，没有 HTTP 推理请求，也不引用整合包的 Python。

@@ -12,8 +12,8 @@ import uuid
 from collections import Counter, OrderedDict, deque
 from pathlib import Path
 
-from index_translate_core.inference import LocalTranslator, PROMPT_VERSION, TranslationCancelled
-from index_translate_core.models import DownloadCancelled, catalog, download_model, inspect_model
+from index_translate_core.inference import LocalTranslator, PROMPT_VERSION, TranslationCancelled, hardware
+from index_translate_core.models import DownloadCancelled, catalog, download_model, inspect_model, model_revision
 
 PLACEHOLDER = re.compile(r"%%IT_[A-Za-z0-9_]+%%")
 TERMINAL = {"completed", "failed", "cancelled"}
@@ -43,12 +43,15 @@ class State:
         self.translator_factory = translator_factory
         self.translator = None
         self.loaded_spec = None
+        self.acceleration = {'compiled': False}
         self.last_used = time.monotonic()
         self.session = secrets.token_urlsafe(32)
         self.pair_code = None
         self.pair_expiry = 0
         self.pair_attempts = 0
         self.queue = OrderedDict()
+        self.video_burst = 0
+        self.urgent_jobs = set()
         self.cancels = {}
         self.download = {"status": "idle"}
         self.download_cancel = threading.Event()
@@ -56,9 +59,17 @@ class State:
         try:
             self.config = json.loads(self.config_path.read_text("utf-8"))
         except FileNotFoundError:
+            default_model = 'Index-Translate-2B'
+            if (self.root / 'models/Index-Translate-2B-ConvRot-INT8/index-quantization.json').is_file():
+                try:
+                    gpus = hardware()['gpus']
+                    if gpus and gpus[0]['free_bytes'] >= 5 * 1024 ** 3:
+                        default_model += '-ConvRot-INT8'
+                except (RuntimeError, OSError):
+                    pass
             self.config = {"identity": str(uuid.uuid4()), "model_id": "IndexTeam/Index-Translate-2B",
-                           "model_path": "models/Index-Translate-2B", "device": "auto", "precision": "auto",
-                           "context_limit": 4096, "idle_unload_seconds": 60, "clients": {}}
+                           "model_path": "models/" + default_model, "device": "auto", "precision": "auto",
+                           "context_limit": 4096, "idle_unload_seconds": 600 if default_model.endswith('INT8') else 60, "clients": {}}
             self.save_config()
         self.db = sqlite3.connect(self.data / "jobs.sqlite3", check_same_thread=False)
         self.db.execute("PRAGMA journal_mode=WAL")
@@ -177,7 +188,7 @@ class State:
             settings = self.public_settings()
             result = {"id": uuid.uuid4().hex, "status": "queued", "page_epoch": request["page_epoch"],
                       "results": [], "done": 0, "total": len(ids), "error": None,
-                      "identity": settings["identity"], "model_revision": catalog()[settings["model_id"]]["revision"],
+                      "identity": settings["identity"], "model_revision": self.model_revision(settings),
                       "prompt_version": PROMPT_VERSION,
                       "runtime": {"device": settings["device"], "precision": settings["precision"],
                                   "context_limit": settings["context_limit"], "output_budget": request["output_budget"]}}
@@ -221,9 +232,35 @@ class State:
             return json.loads(row[0])
 
     def update_job(self, job_id, result):
-        with self.lock:
+        with self.wake:
             self.db.execute("UPDATE jobs SET result=?,updated=? WHERE id=?", (json.dumps(result), time.time(), job_id))
             self.db.commit()
+            self.wake.notify_all()
+
+    def wait_job(self, client, job_id, wait_ms=0):
+        deadline = time.monotonic() + min(max(wait_ms, 0), 20000) / 1000
+        with self.wake:
+            while True:
+                result = self.get_job(client, job_id)
+                remaining = deadline - time.monotonic()
+                if result['status'] in TERMINAL or remaining <= 0 or self.quit.is_set():
+                    return result
+                self.wake.wait(timeout=remaining)
+
+    def promote_video_job(self, client, job_id):
+        with self.wake:
+            result = self.get_job(client, job_id)
+            if result['page_epoch'] != 'video-prefetch':
+                raise ValueError('只有视频预取任务可以提升优先级')
+            if result['status'] not in TERMINAL:
+                self.urgent_jobs.add(job_id)
+                for items in self.queue.values():
+                    if job_id in items:
+                        items.remove(job_id)
+                        items.appendleft(job_id)
+                        break
+                self.wake.notify_all()
+            return result
 
     def cancel_job(self, client, job_id):
         with self.wake:
@@ -275,24 +312,48 @@ class State:
                     self.wake.notify_all()
                 if not self.queue:
                     idle = self.config["idle_unload_seconds"]
-                    changed = self.loaded_spec and self.loaded_spec != self.model_spec(self.public_settings())
+                    try:
+                        changed = self.loaded_spec and self.loaded_spec != self.model_spec(self.public_settings())
+                    except (ValueError, OSError) as error:
+                        self.release_translator()
+                        self.cleanup_error = '模型清单读取失败：' + str(error)[:500]
+                        changed = False
                     if self.translator and (changed or time.monotonic() - self.last_used > idle):
                         self.release_translator()
                     self.wake.wait(timeout=1)
                     continue
-                queue_key, items = self.queue.popitem(last=False)
+                keys = list(self.queue)
+                current = [key for key in keys if key[1] == 'video' or self.queue[key][0] in self.urgent_jobs]
+                normal = [key for key in keys if key[1] not in ('video', 'video-prefetch')]
+                if current and (self.video_burst < 2 or not normal):
+                    queue_key = current[0]
+                    self.video_burst += 1
+                else:
+                    queue_key = normal[0] if normal else keys[0]
+                    self.video_burst = 0
+                items = self.queue.pop(queue_key)
                 client = queue_key[0]
                 job_id = items.popleft()
                 if items:
                     self.queue[queue_key] = items  # Fair round robin between tabs/clients.
                 self.worker_busy = True
             try:
-                self.run_job(client, job_id)
+                self.run_job(client, job_id, quantum=1)
+            except Exception as error:
+                result = self.get_job(client, job_id)
+                result.update(status='failed', error=str(error)[:1800], error_code=type(error).__name__)
+                self.update_job(job_id,result)
+                self.release_translator()
             finally:
                 with self.wake:
                     self.worker_busy = False
                     self.last_used = time.monotonic()
-                    self.cancels.pop(job_id, None)
+                    if self.get_job(client, job_id)['status'] in TERMINAL:
+                        self.cancels.pop(job_id, None)
+                        self.urgent_jobs.discard(job_id)
+                    else:
+                        self.queue.setdefault(queue_key, deque()).append(job_id)
+                    self.wake.notify_all()
         with self.wake:
             self.worker_busy = False
             error = self.release_translator()
@@ -302,9 +363,13 @@ class State:
             self.wake.notify_all()
 
     def model_spec(self, settings):
-        return (str(self.resolve_model(settings)), settings["model_id"], settings["device"], settings["precision"], settings["context_limit"])
+        return (str(self.resolve_model(settings)), settings["model_id"], settings["device"], settings["precision"], settings["context_limit"], self.model_revision(settings))
 
-    def run_job(self, client, job_id):
+    def model_revision(self, settings=None):
+        settings = settings or self.config
+        return model_revision(self.resolve_model(settings), settings['model_id'])
+
+    def run_job(self, client, job_id, quantum=0):
         result = self.get_job(client, job_id)
         if result["status"] in TERMINAL:
             return
@@ -312,25 +377,30 @@ class State:
             payload = json.loads(self.db.execute("SELECT payload FROM jobs WHERE id=?", (job_id,)).fetchone()[0])
         request, settings = payload["request"], payload["settings"]
         cancellation = self.cancels[job_id]
-        result["status"] = "loading" if self.loaded_spec != self.model_spec(settings) else "running"
-        self.update_job(job_id, result)
         try:
+            result["status"] = "loading" if self.loaded_spec != self.model_spec(settings) else "running"
+            self.update_job(job_id, result)
             if cancellation.is_set():
                 raise TranslationCancelled("任务已取消")
             spec = self.model_spec(settings)
+            if result['model_revision'] != spec[-1]:
+                raise ValueError('模型版本已变化，请重新提交任务')
             if self.loaded_spec != spec:
                 error = self.release_translator()
                 if error:
                     raise RuntimeError("旧模型释放失败：" + error)
-                information = inspect_model(self.resolve_model(settings), settings["model_id"])
+                information = inspect_model(self.resolve_model(settings), settings["model_id"], cancel=cancellation)
                 if not information["complete"]:
                     raise ValueError("模型不完整：" + "；".join(information["problems"]))
                 self.translator = self.translator_factory(spec[0], settings["device"], settings["precision"], settings["context_limit"], cancellation)
+                if hasattr(self.translator, 'prepare_acceleration'):
+                    self.acceleration = self.translator.prepare_acceleration()
                 self.loaded_spec = spec
             self.translator.cancel = cancellation
             result["status"] = "running"
             self.update_job(job_id, result)
-            for paragraph in request["paragraphs"]:
+            pending = request['paragraphs'][result['done']:]
+            for paragraph in (pending[:quantum] if quantum else pending):
                 translated = self.translator.translate(paragraph["text"], request["source"], request["target"], request["output_budget"], request["glossary"])
                 if translated["status"] != "completed":
                     raise ValueError("译文被输出预算截断，请拆分原文或增加预算")
@@ -341,8 +411,8 @@ class State:
                 result["results"].append({"id": paragraph["id"], "source_hash": paragraph["source_hash"], **translated})
                 result["done"] += 1
                 self.update_job(job_id, result)
-            result["status"] = "completed"
-        except TranslationCancelled as error:
+            result["status"] = "completed" if result['done'] == result['total'] else "queued"
+        except (TranslationCancelled, DownloadCancelled) as error:
             result.update(status="cancelled", error=str(error))
         except Exception as error:
             result.update(status="failed", error=str(error)[:1800], error_code=type(error).__name__)

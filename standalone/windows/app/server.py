@@ -8,7 +8,7 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, Path as ApiPath
+from fastapi import FastAPI, HTTPException, Request, Query, Path as ApiPath
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,7 +59,7 @@ class Settings(StrictModel):
     model_id: str
     model_path: str = Field(min_length=1, max_length=1024)
     device: str = Field(pattern=r"^(auto|cpu|cuda)$")
-    precision: str = Field(pattern=r"^(auto|bf16|fp32|nf4)$")
+    precision: str = Field(pattern=r"^(auto|bf16|fp32|nf4|convrot-int8)$")
     context_limit: int = Field(ge=256, le=32768)
     idle_unload_seconds: int = Field(ge=5, le=3600)
 
@@ -190,12 +190,13 @@ def create_app(root=ROOT, state=None, port=8098):
     def status(request: Request):
         client(request)
         with state.lock:
-            return {"service_ready": True, "model_ready": state.translator is not None,
-                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1"] +
+            return {"service_ready": True, "model_ready": state.translator is not None and state.loaded_spec is not None,
+                    "acceleration": state.acceleration,
+                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1", "job_wait_v1", "video_priority_v1", "convrot_int8_v1"] +
                     (["speech_r2t2_v1"] if speech.available else []),
                     "busy": state.worker_busy, "settings": state.public_settings(), "download": dict(state.download),
                     "cleanup_error": state.cleanup_error,
-                    "prompt_version": PROMPT_VERSION, "revision": catalog()[state.config["model_id"]]["revision"]}
+                    "prompt_version": PROMPT_VERSION, "revision": state.model_revision()}
 
     @app.get("/api/hardware")
     def resources(request: Request):
@@ -235,6 +236,20 @@ def create_app(root=ROOT, state=None, port=8098):
         except (ValueError, OSError) as error:
             raise HTTPException(400, str(error))
 
+    @app.post('/api/warmup', status_code=202)
+    def warmup(request: Request):
+        owner = client(request, ui_only=True)
+        import hashlib
+        text = 'Hello, world.'
+        try:
+            return state.submit(owner, {'request_id': secrets.token_hex(16), 'page_epoch': 'warmup',
+                'source': 'en', 'target': 'zh', 'output_budget': 64, 'glossary': {},
+                'paragraphs': [{'id': 'warmup', 'text': text, 'source_hash': hashlib.sha256(text.encode()).hexdigest()}]})
+        except OverflowError as error:
+            raise HTTPException(429, str(error))
+        except ValueError as error:
+            raise HTTPException(400, str(error))
+
     @app.post("/api/pair-code")
     def pair_code(request: Request):
         client(request, ui_only=True)
@@ -267,9 +282,12 @@ def create_app(root=ROOT, state=None, port=8098):
             raise HTTPException(400, str(error))
 
     @app.get("/api/jobs/{job_id}")
-    def get_job(job_id: str, request: Request):
+    def get_job(job_id: str, request: Request, wait_ms: int = Query(default=0, ge=0, le=20000)):
         try:
-            return state.get_job(client(request), job_id)
+            owner = client(request)
+            result = state.wait_job(owner, job_id, wait_ms)
+            client(request)  # Revocation/identity may have changed while waiting.
+            return result
         except KeyError:
             raise HTTPException(404, "任务不存在")
 
@@ -279,6 +297,15 @@ def create_app(root=ROOT, state=None, port=8098):
             return state.cancel_job(client(request), job_id)
         except KeyError:
             raise HTTPException(404, "任务不存在")
+
+    @app.post('/api/jobs/{job_id}/priority')
+    def promote_video_job(job_id: str, request: Request):
+        try:
+            return state.promote_video_job(client(request), job_id)
+        except KeyError:
+            raise HTTPException(404, '任务不存在')
+        except ValueError as error:
+            raise HTTPException(400, str(error))
 
     @app.get("/api/requests/{request_id:path}")
     def get_request(request: Request, request_id: str = ApiPath(min_length=8, max_length=128)):

@@ -1,5 +1,13 @@
 # Index Translate Windows 本地整合包
 
+0.1.17 完整包新增 2B CONVROT INT8 与固定的 Windows 加速依赖；保留原有 PyTorch 2.10/cu128。升级旧包需要新的完整包，代码自动更新会检测依赖锁变化，不能用代码 ZIP 代替运行时升级。包内同时保留官方 2B，首次配置在 CUDA 空闲显存至少 5 GiB 时选择 `models/Index-Translate-2B-ConvRot-INT8`，否则选择 `models/Index-Translate-2B`。原有配置保持不变。
+
+使用 INT8：在「模型与设备」点击「选择文件夹…」，选择整个 `Index-Translate-2B-ConvRot-INT8` 或 `Index-Translate-9B-ConvRot-INT8` 文件夹，保存设置，然后点击「加载并预热」。标准目录名会自动选择模型规格与精度；任意目录也可手动选择 2B / 9B 和 `auto` / `convrot-int8`。路径可在任意盘符，无需改名。INT8 此版本要求 NVIDIA CUDA；CPU 请选择包内官方 `Index-Translate-2B` 与 FP32。2B / 9B INT8 权重约 2.67 / 10.37 GB，运行时还需缓存和生成显存。
+
+首次编译预热在本机约 40–60 秒，后续同模型、同上下文上限的短字幕生成约 0.16–0.38 秒；修改模型、重启或卸载后需要重新预热。新 INT8 配置空闲卸载设为 600 秒，手动「释放显存」随时可用。若编译不能使用，会报告原因并回退到正确的 eager 路径。单纯 INT8 eager 不能保证更快。
+
+视频 API 支持当前字幕优先、正文逐段让出、低优先级未来字幕预译和长轮询立即交付。扩展缓存按模型实际 revision、服务身份、精度、语言、术语和提示词隔离。无字幕模式仍需等待 ASR 确认语句；20 秒本地语音样例中，320 ms 传输没有持续积压，共卡翻译约 0.5–0.6 秒，不代表从声音开始的总延迟。
+
 解压 `IndexTranslate-Windows-2B-offline.zip` 到可写目录，双击 `start.cmd`。浏览器打开 http://127.0.0.1:8098 后即可翻译。包内包含私有 Python、推理依赖和完整官方 2B 模型，无需系统 Python 或 ComfyUI；中文、空格路径和跨盘搬迁已实测。
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。启动时每天最多检查一次 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases) 并自动安装较新的代码包；网络不可用时照常启动。更新只覆盖应用代码，保留 `runtime/`、`models/` 和 `data/`。运行中的服务不会被更新打断；可先执行 `stop.cmd`，再运行 `update.cmd` 立即检查并安装。版本升级如需改变 Python 依赖，请获取作者另行分享的新完整包。
@@ -30,7 +38,7 @@
 
 ## 模型与设备
 
-默认使用相对目录 `models/Index-Translate-2B`，GPU 可用且资源足够时选择 BF16，否则尝试 CPU FP32。设备页可选择 CUDA / CPU，以及 BF16 / FP32 / NF4。NF4 使用 bitsandbytes，在 NVIDIA GPU 上减少显存，译文措辞和质量可能变化。CPU 不支持本包的 NF4 档位。
+官方模型使用相对目录 `models/Index-Translate-2B`，GPU 可用且资源足够时选择 BF16，否则尝试 CPU FP32。设备页可选择 CUDA / CPU，以及 BF16 / FP32 / NF4。NF4 使用 bitsandbytes，在 NVIDIA GPU 上减少显存，译文措辞和质量可能变化。CPU 不支持本包的 NF4 档位。
 
 | 已实测档位 | 短样例生成峰值显存 | 说明 |
 |---|---:|---|
@@ -40,7 +48,7 @@
 | 9B CUDA BF16 | 约 17.62 GiB | 资源余量恢复后完成七个样例和取消、预算测试 |
 | 2B CPU FP32 | 0 | 跨盘搬迁后，外部网络被阻断时真实中英互译 |
 
-以上为当前 RTX 5090 Laptop、默认短文本生成阶段的实测，不含加载瞬时峰值，不代表所有上下文的上限。加载前检查实际可用内存和显存，生成仍可能因其他进程竞争资源失败。9B BF16 需至少约 20 GiB 空闲显存，使用前注意其他模型的占用。原生 Windows 使用正确但较慢的参考运算内核。
+以上为当前 RTX 5090 Laptop、默认短文本生成阶段的实测，不含加载瞬时峰值，不代表所有上下文的上限。加载前检查实际可用内存和显存，生成仍可能因其他进程竞争资源失败。9B BF16 需至少约 20 GiB 空闲显存，使用前注意其他模型的占用。官方模型和不支持加速的环境使用参考运算内核；本版 INT8 常驻服务可使用已验证的 FLA/Triton 编译路径。
 
 9B 独立模型包解压后，在设备页点击「选择文件夹…」并选择它的完整模型目录，界面会根据标准文件夹名切换到 9B；点击「保存设置」生效。也可在设备页从官方 ModelScope / Hugging Face 下载完整 2B 或 9B，支持取消、继续和 SHA256 校验。35B preview 在本次固定快照中缺少分片，下载已明确阻断。
 

@@ -322,10 +322,12 @@ $("browse-model-path").addEventListener("click", async () => {
     if (!result.path) return;
     $("model-path").value = result.path;
     const folder = result.path.replace(/[\\/]+$/, "").split(/[\\/]/).at(-1);
-    const modelId = "IndexTeam/" + folder;
+    const quantized = /-ConvRot-INT8$/i.test(folder);
+    const modelId = "IndexTeam/" + folder.replace(/-ConvRot-INT8$/i, '');
     if ([...$("model-id").options].some((option) => option.value === modelId && !option.disabled)) {
       $("model-id").value = modelId;
     }
+    if (quantized) $("precision").value = 'convrot-int8';
     notice("已选择模型目录；点击“保存设置”后生效。");
   } catch (error) {
     notice(error.message, true);
@@ -523,3 +525,20 @@ async function start() {
   }, 5000);
 }
 start();
+
+$("warmup").addEventListener("click", async () => {
+  const button = $("warmup");
+  button.disabled = true;
+  try {
+    const job = await post("/api/warmup");
+    notice("正在加载并预热，首次编译可能需要一到两分钟。完成后再启动视频翻译。");
+    const deadline = Date.now() + 300000;
+    while (Date.now() < deadline) {
+      const result = await api("/api/jobs/" + job.id + "?wait_ms=10000", {signal:AbortSignal.timeout(12000)});
+      if (result.status === "completed") { notice("模型已预热，可以开始翻译。"); await refresh(); return; }
+      if (["failed", "cancelled"].includes(result.status)) throw new Error(result.error || "预热失败");
+    }
+    throw new Error("预热仍在处理中，请查看任务状态");
+  } catch (error) { notice(error.message,true); }
+  finally { button.disabled = false; }
+});

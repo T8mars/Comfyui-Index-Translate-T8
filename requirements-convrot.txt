@@ -1,0 +1,3 @@
+# Optional ConvRot INT8 support; keeps the host's existing torch.
+comfy-kitchen==0.2.37
+nvidia-cublas==13.2.2.2; sys_platform == 'win32'

@@ -1,5 +1,7 @@
 import { endpoint, sha, verifyResults, canonical } from "./protocol.js";
 import * as cache from "./cache.js";
+import {createVideoJobs} from './video_jobs.js';
+import {speechPhrase, takeSpeechEvents} from './speech_phrases.js';
 const defaults = {
   endpoint: "http://127.0.0.1:8098",
   token: "",
@@ -151,29 +153,7 @@ let audioStartGeneration = 0;
 let audioStarts = Promise.resolve();
 let offscreenCreation = null;
 
-async function translateVideo(cfg, value) {
-  const text = String(value || "").trim();
-  if (!text || text.length > 1200) throw new Error("视频字幕长度无效");
-  await backend(cfg);
-  const source_hash = await sha(text);
-  const request_id = crypto.randomUUID();
-  const submitted = await api(cfg, "/api/jobs", "POST", {
-    request_id, expected_identity: cfg.identity, page_epoch: "video",
-    ...preferences(cfg), output_budget: 512,
-    paragraphs: [{id: "cue", text, source_hash}],
-  }, 30000);
-  for (let retry = 0; retry < 120; retry++) {
-    const result = await api(cfg, "/api/jobs/" + submitted.id);
-    if (result.status === "completed") {
-      verifyResults(result, [{id: "cue", text, source_hash}]);
-      return {text: result.results[0].text};
-    }
-    if (["failed", "cancelled"].includes(result.status))
-      throw new Error(result.error || "视频字幕翻译失败");
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-  throw new Error("视频字幕翻译等待超时");
-}
+const videoJobs = createVideoJobs({api,backend,cache,cacheKey,sha,verifyResults,preferences});
 
 async function ensureOffscreen() {
   if (!offscreenCreation)
@@ -207,7 +187,20 @@ async function audioStop(tabId, expectedSession = null, invalidateStart = true) 
 async function sendSpeech(tabId, events, session) {
   for (const event of events || []) {
     if (audioSessions.get(tabId) !== session) return;
-    if (!event.segment_final && !event.final) {
+    const final = !!(event.segment_final || event.final);
+    const stable = String(event.stable_text || '');
+    const phrase = speechPhrase(stable, session.committed, final);
+    if (phrase.text && (final || Date.now() - (session.lastPhraseAt || 0) >= 900)) {
+      try {
+        const accepted = await chrome.tabs.sendMessage(tabId, {type:'IT_VIDEO_SPEECH',source:phrase.text});
+        if (!accepted?.queued) throw new Error('视频翻译队列未接受语音文本');
+        session.committed = phrase.committed;
+        session.lastPhraseAt = Date.now();
+        session.lastPreview = '';
+      }
+      catch { await audioStop(tabId, session); }
+    }
+    if (!final) {
       const preview = String(event.preview_text || "");
       const text = (preview.startsWith(session.committed)
         ? preview.slice(session.committed.length) : preview).trim().slice(-300);
@@ -218,15 +211,8 @@ async function sendSpeech(tabId, events, session) {
       }
       continue;
     }
-    const stable = String(event.stable_text || "");
-    if (!stable.startsWith(session.committed)) session.committed = "";
-    const text = stable.slice(session.committed.length).trim();
     session.committed = stable;
     session.lastPreview = "";
-    if (text) {
-      try { await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:text}); }
-      catch { await audioStop(tabId, session); }
-    }
   }
 }
 
@@ -246,12 +232,16 @@ async function audioFeed(tabId, value) {
     current.seq++;
     current.samples += value.samples;
     if (audioSessions.get(tabId) !== current) return;
-    await sendSpeech(tabId, result.events, current);
+    const delta = takeSpeechEvents(result, current.asrRevision);
+    await sendSpeech(tabId, delta.events, current);
+    current.asrRevision = delta.revision;
     if (current.samples >= 9 * 60 * 16000) {
       const final = await api(current.cfg, `/api/speech/${encodeURIComponent(current.sid)}/finish`, "POST", {
         last_seq: current.seq - 1, total_samples: current.samples,
       }, 180000);
-      await sendSpeech(tabId, final.events, current);
+      const terminal = takeSpeechEvents(final, current.asrRevision, true);
+      await sendSpeech(tabId, terminal.events, current);
+      current.asrRevision = terminal.revision;
       const next = await api(current.cfg, "/api/speech/start", "POST", {}, 180000);
       if (audioSessions.get(tabId) !== current) {
         await cancelSpeech(current.cfg, next.session_id);
@@ -259,6 +249,7 @@ async function audioFeed(tabId, value) {
       }
       current.sid = next.session_id;
       current.seq = current.samples = 0;
+      current.asrRevision = 0;
       current.committed = "";
     }
   });
@@ -283,7 +274,7 @@ async function audioStartNow(tabId, streamId, cfg, generation) {
   for (const id of [...audioSessions.keys()]) await audioStop(id, null, false);
   if (generation !== audioStartGeneration) return;
   const session = {cfg, captureId:crypto.randomUUID(), sid:null, seq:0, samples:0,
-    committed:"", lastPreview:"", queue:Promise.resolve()};
+    committed:"", asrRevision:0, lastPreview:"", queue:Promise.resolve()};
   audioSessions.set(tabId, session);
   try {
     await ensureOffscreen();
@@ -699,6 +690,8 @@ async function recoverSubmission(key, info, cfg, tabId) {
 }
 async function handle(message, sender) {
   if (sender.id !== chrome.runtime.id) throw new Error("无效的消息来源");
+  if (message.type === 'VIDEO_CANCEL' && page(sender))
+    return videoJobs.cancel(sender.tab.id, message.tokens || null);
   if (message.type === "VIDEO_CONTROL" && page(sender)) {
     if (message.action === "stop") {
       await audioStop(sender.tab.id);
@@ -720,7 +713,7 @@ async function handle(message, sender) {
   }
   const cfg = await config();
   if (message.type === "VIDEO_TRANSLATE" && page(sender))
-    return translateVideo(cfg, message.text);
+    return videoJobs.translate(cfg, message.text, sender.tab.id, message.token || crypto.randomUUID(), !!message.prefetch);
   if (message.type === "VIDEO_SCOPE" && page(sender)) {
     const status = await backend(cfg);
     return {scope: JSON.stringify(canonical({endpoint:cfg.endpoint,identity:cfg.identity,
@@ -963,14 +956,26 @@ chrome.runtime.onStartup.addListener(() => {
   checkUpdate().catch(() => {});
 });
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await videoJobs.cancel(tabId);
   await cancelTab(tabId);
   await audioStop(tabId);
   await chrome.storage.session.remove("page:" + tabId);
 });
 chrome.tabs.onUpdated.addListener((tabId, change) => {
-  if (change.status === "loading") { cancelTab(tabId); audioStop(tabId); }
+  if (change.status === "loading") { videoJobs.cancel(tabId); cancelTab(tabId); audioStop(tabId); }
 });
-chrome.permissions.onRemoved.addListener(async () => {
+chrome.permissions.onRemoved.addListener(async (removed) => {
+  if (removed?.origins?.length) {
+    let revokedTabs = [];
+    try { revokedTabs = await chrome.tabs.query({url:removed.origins}); } catch {}
+    for (const tab of revokedTabs) {
+      await videoJobs.cancel(tab.id);
+      await audioStop(tab.id);
+      await cancelTab(tab.id);
+      try { await chrome.tabs.sendMessage(tab.id,{type:'IT_VIDEO_STOP'}); } catch {}
+      try { await chrome.tabs.sendMessage(tab.id,{type:'IT_STOP'}); } catch {}
+    }
+  }
   const cfg = await config();
   for (const [origin, enabled] of Object.entries(cfg.rules))
     if (
@@ -983,6 +988,9 @@ chrome.permissions.onRemoved.addListener(async () => {
       }));
       const tabs = await matchingTabs(origin);
       for (const tab of tabs) {
+        await videoJobs.cancel(tab.id);
+        await audioStop(tab.id);
+        try { await chrome.tabs.sendMessage(tab.id,{type:'IT_VIDEO_STOP'}); } catch {}
         await cancelTab(tab.id);
         try {
           await chrome.tabs.sendMessage(tab.id, { type: "IT_STOP" });

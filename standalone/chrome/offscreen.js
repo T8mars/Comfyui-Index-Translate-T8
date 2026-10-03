@@ -70,7 +70,7 @@ async function start(tabId, streamId, captureId) {
       if (capture !== current || !current.ready || event.data?.type !== "pcm") return;
       current.frames.push(event.data.samples);
       current.buffered += event.data.samples.length;
-      if (current.buffered < 10240) return;
+      if (current.buffered < 5120) return;
       const joined = new Float32Array(current.buffered);
       let offset = 0;
       for (const frame of current.frames) { joined.set(frame,offset); offset += frame.length; }

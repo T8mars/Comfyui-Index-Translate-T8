@@ -1,5 +1,11 @@
 # T8 Index Translate 本地网页翻译
 
+0.1.17 加速视频字幕交付：优先当前字幕，正文按段落让出；标准 TextTrack 可预译未来十秒内最多三条字幕。结果持久缓存，刷新或重播可直接命中；在途相同请求合并，停止、seek、换轨或撤销权限会取消过期任务。模型实际 revision、精度、语言、术语与服务身份改变后不会复用旧结果。损坏、截断或失败译文不缓存。
+
+无字幕语音以 320 ms 发送音频，只将 ASR 确认文本送入顺序翻译队列，保留确认前缀保护；长文本入队前完整拆分，结束时用会话 revision 游标排除重复历史。支持的播放速度取决于本机是否能跟上 ASR，积压会明确停止并提示，不静默丢音频。
+
+本机真实 Chrome + 2B CONVROT 编译热态：字幕到显示 0.561 秒，刷新后命中 0.090 秒。首次模型预热另需约 40–60 秒。建议配套 0.1.17 完整 Windows 包并先在模型页预热。旧服务兼容回退轮询；加速能力按服务声明启用。更新解压扩展后，在 Chrome 扩展管理页重新加载一次并刷新网页，原有配对保留。
+
 Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的隔离配置下使用真实本地模型验证。使用时需运行独立 Windows 整合包，无需 ComfyUI。
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。扩展会在安装、浏览器启动以及每天自动检查 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest)，发现新版时显示 `NEW` 徽标，设置页可手动检查。Chrome 不允许「加载已解压」的扩展自行替换程序文件；收到提示后下载新版 ZIP、覆盖解压文件夹，再到扩展页点击「重新加载」。
