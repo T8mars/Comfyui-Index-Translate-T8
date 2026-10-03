@@ -294,12 +294,12 @@
     const width = 36;
     const initial = savedPosition &&
       Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)
-      ? savedPosition : { x: 0.82, y: 0.64 };
+      ? savedPosition : { x: 1, y: 0.64 };
     let position = {
       x: Math.max(0, Math.min(1, initial.x)),
       y: Math.max(0, Math.min(1, initial.y)),
     };
-    const clamp = (value, max) => Math.max(margin, Math.min(value, Math.max(margin, max - width - margin)));
+    const clamp = (value, max, gap) => Math.max(0, Math.min(Math.max(gap, value), Math.max(0, max - width - gap)));
     const positionPanel = () => {
       if (section.hidden) return;
       const rect = bubble.getBoundingClientRect();
@@ -317,12 +317,13 @@
       section.style.top = `${Math.max(margin, Math.min(desiredTop, innerHeight - panelHeight - margin)) - rect.top}px`;
     };
     const place = (x, y) => {
-      host.style.left = `${clamp(x, innerWidth)}px`;
-      host.style.top = `${clamp(y, innerHeight)}px`;
+      host.style.left = `${clamp(x, document.documentElement.clientWidth, 0)}px`;
+      host.style.top = `${clamp(y, innerHeight, margin)}px`;
       positionPanel();
     };
-    const placeRelative = () => place(position.x * Math.max(1, innerWidth - width),
+    const placeRelative = () => place(position.x * Math.max(1, document.documentElement.clientWidth - width),
       position.y * Math.max(1, innerHeight - width));
+    toolbar.resetPosition = () => { position = {x:1,y:0.64}; placeRelative(); };
     placeRelative();
     let drag = null;
     let suppressClick = false;
@@ -348,7 +349,7 @@
         setTimeout(() => { suppressClick = false; }, 0);
         const rect = bubble.getBoundingClientRect();
         position = {
-          x: rect.left / Math.max(1, innerWidth - width),
+          x: rect.left / Math.max(1, document.documentElement.clientWidth - width),
           y: rect.top / Math.max(1, innerHeight - width),
         };
         message({ type: "FLOAT_POSITION", ...position }).catch(() => {});
@@ -358,6 +359,13 @@
     bubble.addEventListener("pointerup", endDrag);
     bubble.addEventListener("pointercancel", endDrag);
     window.addEventListener("resize", placeRelative);
+    document.addEventListener("pointerdown", (event) => {
+      if (!event.composedPath().includes(host)) section.hidden = true;
+    }, true);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") section.hidden = true;
+    });
+    window.addEventListener("blur", () => { section.hidden = true; });
     bubble.addEventListener("click", () => {
       if (suppressClick) { suppressClick = false; return; }
       if (!enabled || paused) {
@@ -860,6 +868,7 @@
     if (msg.type === "IT_STATUS") {
       respond({ enabled, paused, ...stats(), error: lastError });
     }
+    if (msg.type === "IT_FLOAT_RESET") { toolbar?.resetPosition(); respond({reset:true}); }
   });
   addEventListener("pagehide", () => {
     const resume = enabled && !paused;

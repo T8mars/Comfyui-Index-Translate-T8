@@ -84,6 +84,10 @@ $("clear").addEventListener("click", async () => {
     tell(error.message, true);
   }
 });
+$("reset-floating").addEventListener("click", async () => {
+  try { await message({type:"RESET_FLOAT_POSITION"}); tell("悬浮按钮已回到右边，仍可自由拖动。"); }
+  catch (error) { tell(error.message,true); }
+});
 function rules() {
   const list = $("rules");
   list.replaceChildren();
@@ -146,4 +150,19 @@ async function initialize() {
     tell(error.message, true);
   }
 }
+$("reload-extension").addEventListener("click", async () => {
+  $("reload-extension").disabled = true;
+  tell("正在停止视频翻译并重新加载扩展…");
+  try {
+    for (const tab of await chrome.tabs.query({})) {
+      await message({type:"VIDEO_AUDIO_STOP",tabId:tab.id});
+      try { await chrome.tabs.sendMessage(tab.id,{type:"IT_VIDEO_STOP"}, {frameId:0}); } catch {}
+    }
+    await message({type:"VIDEO_WAIT_IDLE"}).catch(() => {});
+    chrome.runtime.reload();
+  } catch (error) {
+    $("reload-extension").disabled = false;
+    tell(error.message,true);
+  }
+});
 initialize();

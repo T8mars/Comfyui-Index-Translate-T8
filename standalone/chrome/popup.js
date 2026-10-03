@@ -41,7 +41,7 @@ async function inject() {
   });
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    files: ["content.js"],
+    files: ["content.js", "video.js"],
   });
 }
 async function preferences() {
@@ -79,14 +79,10 @@ async function startVideo(forceSpeech = false) {
     if (!tab || !/^https?:\/\//.test(tab.url))
       throw new Error("请选择含 HTML5 视频的普通网页");
     await preferences();
-    await chrome.scripting.executeScript({target:{tabId:tab.id},files:["video.js"]});
-    const result = await chrome.tabs.sendMessage(tab.id,{type:"IT_VIDEO_START",forceSpeech});
+    const result = await message({type:"VIDEO_START_UI",tabId:tab.id,forceSpeech});
     if (result.mode === "none") throw new Error(result.reason);
     if (result.mode === "speech") {
-      // The opaque capture ID expires quickly; consume it in the offscreen document now.
-      const {streamId} = await message({type:"VIDEO_CAPTURE_ID",tabId:tab.id});
-      await message({type:"VIDEO_AUDIO_START",tabId:tab.id,streamId});
-      tell("正在加载本地 R2T2 语音模型，随后识别并翻译当前视频声音。");
+      tell(result.authorizationRequired ? result.note : "正在加载本地 R2T2 语音模型，随后识别并翻译当前视频声音。", !!result.authorizationRequired);
     } else tell("已开始翻译视频字幕轨。");
   } catch (error) {
     if (tab) {

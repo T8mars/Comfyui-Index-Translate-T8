@@ -47,6 +47,7 @@
         <div class="row">
           <button id="save">保存偏好</button
           ><button id="clear" class="secondary">清空译文缓存</button>
+          <button id="reset-floating" class="secondary">悬浮按钮回到右边</button>
         </div>
         <p>
           双语显示保留原文 DOM。代码、链接、公式以占位符保留；iframe 和 Shadow
@@ -61,8 +62,8 @@
       <section class="card">
         <h2>扩展更新</h2>
         <p id="update-status">正在检查版本…</p>
-        <div class="row"><button id="check-update" class="secondary">检查更新</button><a id="release-link" href="https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest" target="_blank" rel="noopener noreferrer">查看最新版本</a></div>
-        <p>解压加载的扩展无法自行替换代码；发现新版后请下载新版 ZIP、解压到原文件夹并在 Chrome 扩展页点击「重新加载」。</p>
+        <div class="row"><button id="check-update" class="secondary">检查更新</button><button id="reload-extension" class="secondary">重新加载扩展</button><a id="release-link" href="https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest" target="_blank" rel="noopener noreferrer">查看最新版本</a></div>
+        <p>新版 ZIP 解压覆盖原文件夹后，刷新本设置页并点击「重新加载扩展」，再刷新需要翻译的网页。重新加载会停止当前翻译，配对和设置保留。</p>
       </section>
       <p class="foot">
         译文缓存仅保存在本机。不同服务、模型版本、推理精度、语言或术语设置分别缓存。

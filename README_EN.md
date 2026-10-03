@@ -22,6 +22,8 @@ Version 0.1.13 adds HTML5 video translation. The extension translates standard s
 
 Version 0.1.14 lets the standalone bundle open existing R2T2 Q8 GGUF files directly, without copying them. Under Models and devices → Video speech recognition, select the original project, its models directory, or the folder containing the official decoder and projector. The path persists in data/speech-settings.json across restarts and code updates. The separately shared reuse-ASR runtime bundle omits approximately 2.19 GB of speech weights. It reuses the streaming implementation from [the existing R2T2 project](https://github.com/T8mars/comfyui-confucius-r2t2-t8) and runs independently of ComfyUI.
 
+Version 0.1.15 places the page bubble against the right edge and closes its panel on outside clicks. Each visible player has subtitle, speech, and stop buttons. Vimeo captions use its official player messaging API, with local R2T2 audio as a fallback. Speech starts wait for cancellation of a prior pending start to prevent BUSY races. Chrome requires an extension action invocation before first capturing a tab; an inline notice explains this when authorization is missing. It remains compatible with the 0.1.14 standalone service and external model paths.
+
 ## Credits and links
 
 By **T8star-Aix**. This is an independent community integration; the original project and model credits belong to IndexTeam / bilibili. See [NOTICE](NOTICE) and [LICENSE](LICENSE). The Hugging Face model mirror retains the upstream files and cards.

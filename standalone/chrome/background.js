@@ -148,6 +148,7 @@ async function backend(config) {
 const audioSessions = new Map();
 const captureGrants = new Map();
 let audioStartGeneration = 0;
+let audioStarts = Promise.resolve();
 let offscreenCreation = null;
 
 async function translateVideo(cfg, value) {
@@ -271,8 +272,14 @@ async function audioFeed(tabId, value) {
   }
 }
 
-async function audioStart(tabId, streamId, cfg) {
+function audioStart(tabId, streamId, cfg) {
   const generation = ++audioStartGeneration;
+  const result = audioStarts.then(() => audioStartNow(tabId, streamId, cfg, generation));
+  audioStarts = result.catch(() => {});
+  return result;
+}
+async function audioStartNow(tabId, streamId, cfg, generation) {
+  if (generation !== audioStartGeneration) return;
   for (const id of [...audioSessions.keys()]) await audioStop(id, null, false);
   if (generation !== audioStartGeneration) return;
   const session = {cfg, captureId:crypto.randomUUID(), sid:null, seq:0, samples:0,
@@ -313,6 +320,29 @@ function ui(sender) {
     sender.url?.startsWith("chrome-extension://" + chrome.runtime.id + "/")
   );
 }
+async function startVideoForTab(tabId, forceSpeech, targetIndex = null) {
+  await audioStop(tabId);
+  const generation = audioStartGeneration;
+  await audioStarts;
+  if (generation !== audioStartGeneration) return {mode:"none",reason:"视频翻译已取消，请重试"};
+  await chrome.scripting.executeScript({target:{tabId},files:["video.js"]});
+  const result = await chrome.tabs.sendMessage(tabId,
+    {type:"IT_VIDEO_START",forceSpeech,targetIndex}, {frameId:0});
+  if (!result || result.mode === "none") throw new Error(result?.reason || "未找到可见视频");
+  if (result.mode === "speech") {
+    try {
+      const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId:tabId});
+      const cfg = await config();
+      if (generation !== audioStartGeneration) return {mode:"none",reason:"视频翻译已取消，请重试"};
+      audioStart(tabId, streamId, cfg).catch(() => {});
+    } catch {
+      const note = "请先点击 Chrome 工具栏的 T8 扩展，再点「直接识别声音」授权当前标签页；之后可用视频内按钮。";
+      await chrome.tabs.sendMessage(tabId, {type:"IT_VIDEO_SPEECH",source:"",note}, {frameId:0});
+      return {...result, authorizationRequired:true, note};
+    }
+  }
+  return result;
+}
 function page(sender) {
   return (
     sender.id === chrome.runtime.id &&
@@ -342,7 +372,7 @@ async function reconcileRegistrations() {
       scripts.push({
         id: "site-" + (await sha(origin)),
         matches: [origin + "/*"],
-        js: ["content.js"],
+        js: ["content.js", "video.js"],
         css: ["content.css"],
         runAt: "document_idle",
         allFrames: false,
@@ -682,6 +712,16 @@ async function recoverSubmission(key, info, cfg, tabId) {
 }
 async function handle(message, sender) {
   if (sender.id !== chrome.runtime.id) throw new Error("无效的消息来源");
+  if (message.type === "VIDEO_CONTROL" && page(sender)) {
+    if (message.action === "stop") {
+      await audioStop(sender.tab.id);
+      await chrome.tabs.sendMessage(sender.tab.id, {type:"IT_VIDEO_STOP"}, {frameId:0});
+      return {stopped:true};
+    }
+    if (message.action !== "start" || !Number.isInteger(message.targetIndex) || message.targetIndex < 0)
+      throw new Error("无效的视频操作");
+    return startVideoForTab(sender.tab.id, !!message.forceSpeech, message.targetIndex);
+  }
   if (message.type === "VIDEO_CAPTURE_ID" && ui(sender)) {
     if (!Number.isInteger(message.tabId)) throw new Error("无效的标签页");
     await audioStop(message.tabId);
@@ -812,6 +852,17 @@ async function handle(message, sender) {
     return {};
   }
   if (!ui(sender)) throw new Error("该操作只允许扩展设置页面使用");
+  if (message.type === "RESET_FLOAT_POSITION") {
+    await updateConfig(current => ({...current,floating_position:null}));
+    for (const tab of await chrome.tabs.query({}))
+      try { await chrome.tabs.sendMessage(tab.id,{type:"IT_FLOAT_RESET"}, {frameId:0}); } catch {}
+    return {};
+  }
+  if (message.type === "VIDEO_WAIT_IDLE") { await audioStarts; return {}; }
+  if (message.type === "VIDEO_START_UI") {
+    if (!Number.isInteger(message.tabId)) throw new Error("无效的标签页");
+    return startVideoForTab(message.tabId, !!message.forceSpeech);
+  }
   if (message.type === "VIDEO_AUDIO_START") {
     if (!Number.isInteger(message.tabId) || typeof message.streamId !== "string" ||
         !message.streamId || message.streamId.length > 4096 || /[\x00-\x1f]/.test(message.streamId))
