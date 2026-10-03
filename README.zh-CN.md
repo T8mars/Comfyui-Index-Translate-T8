@@ -4,6 +4,8 @@
 
 Windows 用 **ComfyUI 自己的 Python** 执行 `install_convrot.py`，安装固定官方 comfy-kitchen 0.2.37、NVIDIA cuBLAS 13.2.2.2 wheel 到独立目录，不替换宿主 torch。新进程生效；回退只需移除 `index_translate_convrot.pth` 并重启。其他系统用宿主 Python 安装 `requirements-convrot.txt`。INT8 本版需要 NVIDIA CUDA，CPU 仍用官方模型。真实 Python 3.10 / torch 2.7/cu128 宿主工作流已通过，整合包两个端口被阻断时仍能独立翻译。
 
+Windows 常驻服务冷态计时：本机 2B 首次编译约 40–60 秒，9B 首次编译约 116 秒、加载另需约 20 秒；预热后 2B / 9B 六类样例生成中位数约 0.297 / 0.672 秒。冷态和热态需分别看待。
+
 节点仍在执行结束后释放模型。Windows 常驻服务的静态缓存编译速度不适用于该节点；此宿主 GDN 使用正确的参考路径，首次工作流含加载耗时。不得借用整合包 Python、依赖目录或 HTTP 服务。
 
 将本目录复制到 `ComfyUI/custom_nodes/ComfyUI-Index-Translate`，用 **ComfyUI 自己的 Python** 安装 `requirements.txt`，然后重启 ComfyUI。依赖文件不安装或覆盖 torch；CUDA 运行需要支持当前显卡的 PyTorch。
