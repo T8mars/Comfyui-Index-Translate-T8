@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "index-translate-t8"
-version = "0.1.17"
+version = "0.1.20"
 description = "Local Index-Translate text translation node for ComfyUI, by T8star-Aix"
 readme = "README.md"
 requires-python = ">=3.10"

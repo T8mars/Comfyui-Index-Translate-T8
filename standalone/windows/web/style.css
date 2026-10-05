@@ -215,6 +215,11 @@ summary { cursor: pointer; font-weight: 650; }
 .wide { grid-column: span 3; }
 .settings-action { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-top: 14px; color: var(--muted); font-size: 13px; }
 .settings-action > div { display: flex; gap: 10px; }
+.warmup-state { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: #f3f5fc; color: #617089; font-size: 14px; }
+.warmup-state[data-state="ready"] { background: #eaf7f2; border-color: #b9ddce; color: #22654b; }
+.warmup-state[data-state="working"] { background: #fff2f8; border-color: #f0c8db; color: #a3336e; }
+.warmup-state[data-state="error"] { background: #fff0f2; border-color: #eebdca; color: var(--error); }
+#warmup[aria-busy="true"] { opacity: 1; background: #f8e9f1; color: #a3336e; }
 .download-box, .browser-guide, .pair-card, #diagnostics pre {
   margin-top: 20px;
   padding: 20px;

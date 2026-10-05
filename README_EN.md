@@ -4,6 +4,16 @@
 
 A local translation project built on [IndexTeam's Index-Translate](https://github.com/bilibili/Index-Translate). This repository contains three deliverables: an independent ComfyUI node, source updates for a standalone Windows bundle, and a Chrome web-page translation extension. **The ComfyUI node runs inference inside ComfyUI and does not connect to the Windows bundle.** The Chrome extension connects to the local Windows service.
 
+## Version 0.1.20
+
+[Download the v0.1.20 release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20). This includes the previous 0.1.18/0.1.19 fixes and the new desktop launcher, warmup status, and speech-start feedback.
+
+For an existing 0.1.17 acceleration bundle, close its service and run `update.cmd`, or extract `IndexTranslate-Windows-code-v0.1.20.zip` directly over the original bundle directory. Run `start.cmd`: it installs the packaged EXE in the correct location automatically, without renaming files, and opens a persistent **By T8star** taskbar window. Closing the window cancels jobs, releases translation/speech resources and waits for the owned service to exit. GitHub's Windows ZIP contains application code and the small launcher, without Python, dependencies or weights. Earlier runtimes still need the complete runtime upgrade.
+
+Warmup has a nearby progress/completion/error indicator, survives a page reload, and supports cancellation/retry. The Chrome speech button provides immediate feedback followed by model loading, waiting for audio, collected seconds, pause/end state or an actionable error; progress does not cover video subtitles. Extract the Chrome ZIP into the existing extension directory, reload it at `chrome://extensions`, and refresh the video page. Pairing is preserved. The Chrome ZIP directly contains `manifest.json`.
+
+The independent ComfyUI node includes the prior quantization-manifest, download-resume and cache-invalidation fixes. It still runs inside ComfyUI with its own Python and a selectable complete model path. Model weights have not changed. See [release notes](docs/releases/v0.1.20.md) for validation and upgrade details.
+
 ## ComfyUI node
 
 Search for **Index Translate · T8star-Aix** in ComfyUI Manager, or clone this repository into `ComfyUI/custom_nodes/Comfyui-Index-Translate-T8`, install `requirements.txt` with **ComfyUI's own Python**, and restart ComfyUI. The package uses the host's existing PyTorch and does not include Python or weights. Transformers 5.17.0 may affect other nodes; check host compatibility before upgrading.

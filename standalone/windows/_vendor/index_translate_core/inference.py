@@ -68,6 +68,7 @@ class LocalTranslator:
         self.model = None
         self.tokenizer = None
         self.generation_options = {}
+        self._owns_compile_profile = False
         from .acceleration import enable_fast_kernels
         self.acceleration_info = enable_fast_kernels()
         self.cancel = cancel or threading.Event()
@@ -209,6 +210,7 @@ class LocalTranslator:
         if tuple(int(v) for v in torch.__version__.split('+')[0].split('.')[:2]) < (2, 10):
             return {'compiled': False, 'reason': 'compile profile requires torch 2.10 or later'}
         from transformers import CompileConfig
+        self._owns_compile_profile = True
         self.generation_options = {'cache_implementation': 'static', 'max_cache_len': self.context_limit,
                                    'compile_config': CompileConfig(mode='reduce-overhead', fullgraph=True)}
         started = time.perf_counter()
@@ -226,6 +228,15 @@ class LocalTranslator:
             return {'compiled': False, 'reason': str(error)[:500]}
 
     def release(self):
+        if getattr(self, '_owns_compile_profile', False):
+            # Static decode graphs belong to this translator's worker thread.
+            # Eager ComfyUI nodes never enter this process-local compile path.
+            from torch._inductor.cudagraph_trees import reset_cudagraph_trees
+            reset_cudagraph_trees()
+            if hasattr(self.model, '_compiled_call'):
+                del self.model._compiled_call
+            self.generation_options = {}
+            self._owns_compile_profile = False
         self.model = None
         self.tokenizer = None
         gc.collect()

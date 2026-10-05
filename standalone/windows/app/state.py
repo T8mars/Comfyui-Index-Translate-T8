@@ -8,6 +8,7 @@ import secrets
 import sqlite3
 import threading
 import time
+import traceback
 import uuid
 from collections import Counter, OrderedDict, deque
 from pathlib import Path
@@ -154,8 +155,14 @@ class State:
             return self.config["clients"].get(hashlib.sha256(token.encode()).hexdigest(), {}).get("id")
 
     def revoke_clients(self):
-        with self.lock:
+        with self.wake:
             self.replace_config({**self.config, "clients": {}})
+            # Once credentials are revoked the extension cannot send cancellation.
+            # Retire its queued/running work while preserving local WebUI jobs.
+            for job_id in tuple(self.cancels):
+                row = self.db.execute('SELECT client FROM jobs WHERE id=?', (job_id,)).fetchone()
+                if row and row[0].startswith('chrome:'):
+                    self.cancel_job(row[0], job_id)
 
     def submit(self, client, request):
         with self.wake:
@@ -294,6 +301,7 @@ class State:
     def release_translator(self):
         translator, self.translator = self.translator, None
         self.loaded_spec = None
+        self.acceleration = {'compiled': False}
         self.cleanup_error = None
         if translator is not None:
             try:
@@ -414,8 +422,18 @@ class State:
             result["status"] = "completed" if result['done'] == result['total'] else "queued"
         except (TranslationCancelled, DownloadCancelled) as error:
             result.update(status="cancelled", error=str(error))
+            # A cancellation during compile warmup happens after construction
+            # but before the model is ready. Release that partial installation.
+            if self.translator is not None and self.loaded_spec is None:
+                # Inactive warmup frames can still own CUDA inputs when the
+                # allocator is emptied. Drop them before releasing the model.
+                traceback.clear_frames(error.__traceback__)
+                cleanup_error = self.release_translator()
+                if cleanup_error:
+                    result['cleanup_error'] = cleanup_error
         except Exception as error:
             result.update(status="failed", error=str(error)[:1800], error_code=type(error).__name__)
+            traceback.clear_frames(error.__traceback__)
             cleanup_error = self.release_translator()
             if cleanup_error:
                 result["cleanup_error"] = cleanup_error

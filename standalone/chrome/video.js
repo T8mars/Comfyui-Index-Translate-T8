@@ -16,6 +16,9 @@
   const prefetches = new Map();
   let cancellationBarrier = Promise.resolve();
   let speechQueue = [], speechBusy = false, speechPumpGeneration = 0;
+  let speechEpoch = '';
+  let speechEnded = false;
+  let speechPausedAt = null, speechPauseTimer = null, speechPauseFinalizing = false;
 
   function cancelForeground() {
     if (foregroundToken) chrome.runtime.sendMessage({type:'VIDEO_CANCEL',tokens:[foregroundToken]}).catch(() => {});
@@ -78,6 +81,7 @@
   function visible(item) {
     const rect = item.getBoundingClientRect();
     const css = getComputedStyle(item);
+    if (item.checkVisibility?.({checkOpacity:true,checkVisibilityCSS:true}) === false) return false;
     return rect.width >= 120 && rect.height >= 80 && rect.bottom > 0 && rect.top < innerHeight &&
       rect.right > 0 && rect.left < innerWidth && css.visibility !== "hidden" && css.display !== "none";
   }
@@ -184,6 +188,7 @@
 
   function position() {
     if (!host) return false;
+    if (active && !host.isConnected) overlay();
     if (!video) {
       host.style.width = "min(80vw,900px)";
       host.style.left = "10vw";
@@ -299,14 +304,88 @@
   }
 
   function seeked() {
+    if (speechPauseTimer) clearTimeout(speechPauseTimer);
+    speechPauseTimer = null;
+    speechPauseFinalizing = false;
+    speechPausedAt = video?.paused ? Date.now() : null;
     cancelVideoRequests();
     ++revision;
     ++speechFinalId;
     speechQueue = []; speechBusy = false; ++speechPumpGeneration;
+    lastSpeechTranslation = '';
     lastCue = '';
     hasSubtitle = false;
     if (host) host.style.display = 'none';
     if (mode === 'captions') { cueChanged(); prefetchCues(); }
+    else if (active && mode === 'speech') {
+      speechEpoch = crypto.randomUUID();
+      const epoch = speechEpoch;
+      chrome.runtime.sendMessage({type:'VIDEO_AUDIO_RESTART_PAGE',speechEpoch:epoch}).then(reply => {
+        if (active && mode === 'speech' && speechEpoch === epoch && (!reply?.ok || reply.value?.restarted === false))
+          show('', '', reply?.error || '语音采集尚未启动，请重新点击「语音译」');
+      }).catch(error => {
+        if (active && mode === 'speech' && speechEpoch === epoch) show('', '', error.message);
+      });
+    }
+  }
+
+  function pausedPlayback() {
+    if (!active || mode !== 'speech') return;
+    speechPausedAt = Date.now();
+    chrome.runtime.sendMessage({type:'VIDEO_AUDIO_PAUSE_PAGE',paused:true,speechEpoch}).catch(() => {});
+    if (speechPauseTimer) clearTimeout(speechPauseTimer);
+    const epoch = speechEpoch;
+    // Native active ASR expires after 30 seconds without input. Finalize its
+    // buffered tail before then; a throttled page timer is also covered by the
+    // elapsed-time check in resumedPlayback.
+    speechPauseTimer = setTimeout(() => {
+      speechPauseTimer = null;
+      if (active && mode === 'speech' && speechEpoch === epoch && speechPausedAt !== null) {
+        speechPauseFinalizing = true;
+        finishPlayback(epoch);
+      }
+    },20000);
+  }
+  function resumedPlayback() {
+    if (!active || mode !== 'speech') return;
+    const elapsed = speechPausedAt === null ? 0 : Date.now() - speechPausedAt;
+    if (speechPauseTimer) clearTimeout(speechPauseTimer);
+    speechPauseTimer = null;
+    speechPausedAt = null;
+    if (speechEnded || speechPauseFinalizing || elapsed >= 20000) {
+      speechEnded = false; speechPauseFinalizing = false; seeked();
+    }
+    else {
+      const epoch = speechEpoch;
+      chrome.runtime.sendMessage({type:'VIDEO_AUDIO_PAUSE_PAGE',paused:false,speechEpoch:epoch}).then(reply => {
+        if (active && mode === 'speech' && speechEpoch === epoch && !reply?.ok)
+          show('', '', reply?.error || '视频声音采集已结束，请重新点击「语音译」');
+      }).catch(error => {
+        if (active && mode === 'speech' && speechEpoch === epoch) show('', '', error.message);
+      });
+    }
+  }
+  function endedPlayback() {
+    if (!active || mode !== 'speech') return;
+    speechEnded = true;
+    if (speechPauseTimer) clearTimeout(speechPauseTimer);
+    speechPauseTimer = null;
+    const epoch = speechEpoch;
+    finishPlayback(epoch);
+  }
+  function finishPlayback(epoch) {
+    chrome.runtime.sendMessage({type:'VIDEO_AUDIO_FINISH_PAGE',speechEpoch:epoch}).then(reply => {
+      if (active && mode === 'speech' && speechEpoch === epoch && !reply?.ok)
+        show('', '', reply?.error || '视频声音收尾失败');
+    }).catch(error => {
+      if (active && mode === 'speech' && speechEpoch === epoch) show('', '', error.message);
+    });
+  }
+  function changedSource() {
+    if (!active || !video) return;
+    const control = controls.get(video);
+    stop(true);
+    if (control) control.status.textContent = '视频来源已更换，请点击「字幕译」或「语音译」继续';
   }
 
   function enqueueSpeech(source) {
@@ -398,6 +477,10 @@
       ? [...document.querySelectorAll("video,iframe")][targetIndex] : chosenVideo();
     if (!video || !visible(video)) { video = null; return {mode:"none",reason:"未找到可见视频，请滚动到播放器再启动"}; }
     active = true;
+    speechEnded = false;
+    speechPausedAt = video.paused ? Date.now() : null;
+    speechPauseFinalizing = false;
+    speechEpoch = crypto.randomUUID();
     lastSpeechTranslation = '';
     lastCue = "";
     cacheScope = "";
@@ -440,6 +523,10 @@
       cueChanged();
     } else if (!lastCue) show("");
     video.addEventListener('seeking', seeked);
+    video.addEventListener('pause', pausedPlayback);
+    video.addEventListener('playing', resumedPlayback);
+    video.addEventListener('ended', endedPlayback);
+    video.addEventListener('emptied', changedSource);
     timer = setInterval(() => {
       if (video && !video.isConnected) { stop(true); return; }
       position();
@@ -448,17 +535,29 @@
       refreshScope();
     }, 1000);
     updateControls();
-    return {mode};
+    return {mode,speechEpoch};
   }
 
   function stop(notify = false) {
     ++videoLifecycle;
     const wasSpeech = notify && active && mode === "speech";
     if (active) cancelVideoRequests();
-    if (video) video.removeEventListener('seeking', seeked);
+    if (video) {
+      video.removeEventListener('seeking', seeked);
+      video.removeEventListener('pause', pausedPlayback);
+      video.removeEventListener('playing', resumedPlayback);
+      video.removeEventListener('ended', endedPlayback);
+      video.removeEventListener('emptied', changedSource);
+    }
     active = false;
     speechQueue = []; speechBusy = false; ++speechPumpGeneration;
     lastSpeechTranslation = '';
+    speechEpoch = '';
+    speechEnded = false;
+    speechPausedAt = null;
+    speechPauseFinalizing = false;
+    if (speechPauseTimer) clearTimeout(speechPauseTimer);
+    speechPauseTimer = null;
     hasSubtitle = false;
     ++revision;
     ++speechFinalId;
@@ -477,18 +576,25 @@
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message.type === 'IT_VIDEO_STATUS') {
+      respond({active,mode,paused:!!video?.paused,note:controls.get(video)?.status.textContent || ''});
+      return;
+    }
+    if (message.type === 'IT_VIDEO_EPOCH') { respond({speechEpoch}); return; }
     if (message.type === "IT_VIDEO_START") {
       start(!!message.forceSpeech, message.targetIndex).then(respond, error => respond({mode:"none",reason:error.message}));
       return true;
     }
     if (message.type === "IT_VIDEO_STOP") { stop(); respond({stopped:true}); }
     if (message.type === "IT_VIDEO_SPEECH" && active && mode === "speech") {
+      if (message.speechEpoch !== speechEpoch) { respond({shown:false,queued:false,stale:true}); return; }
       if (!lastSpeechTranslation || message.text || message.note)
         show(message.source, message.text || "", message.note || "");
       const queued = message.source && !message.text && !message.note ? enqueueSpeech(message.source) : true;
-      respond({shown:true,queued});
+      respond({shown:true,queued,paused:!!video?.paused});
     }
     if (message.type === "IT_VIDEO_SPEECH_PREVIEW" && active && mode === "speech") {
+      if (message.speechEpoch !== speechEpoch) { respond({shown:false}); return; }
       ++revision;
       if (!lastSpeechTranslation) show(message.source);
       respond({shown:true});
@@ -501,10 +607,13 @@
   addEventListener("scroll", () => { updateControls(); if (active) position(); }, true);
   addEventListener("resize", () => { updateControls(); if (active) position(); });
   new MutationObserver(changes => {
-    if (changes.some(change => change.type === "attributes" ? change.target.matches("video,iframe") :
+    if (changes.some(change => change.type === "attributes" ?
+      change.target.matches("video,iframe") || change.target.querySelector("video,iframe") :
       [...change.addedNodes,...change.removedNodes].some(node =>
-        node.nodeType === 1 && (node.matches("video,iframe") || node.querySelector("video,iframe"))))) discoverControls();
-  }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["src","title","allow","allowfullscreen"]});
+        node.nodeType === 1 && (node.matches('video,iframe,[data-index-owned="video-controls"]') ||
+          node.querySelector('video,iframe,[data-index-owned="video-controls"]'))))) discoverControls();
+  }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,
+    attributeFilter:["src","title","allow","allowfullscreen","class","style","hidden"]});
   discoverControls();
   addEventListener("pagehide", () => stop(true));
 })();

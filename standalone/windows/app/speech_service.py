@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import base64
 import binascii
+import copy
 import importlib
 import json
 import threading
+import time
+from collections import OrderedDict
 from pathlib import Path
 
 from .state import atomic_json
@@ -21,6 +24,7 @@ class SpeechSessions:
         self._lock = threading.RLock()
         self._owners: dict[str, str] = {}
         self._manager = None
+        self._finished = OrderedDict()
         self.settings_path = self.root / "data/speech-settings.json"
         try:
             settings = json.loads(self.settings_path.read_text("utf-8"))
@@ -80,20 +84,37 @@ class SpeechSessions:
         ))
 
     def manager(self):
-        if not self.available:
-            raise RuntimeError("R2T2 语音模型或原生库未就绪，请在模型设置中选择已有语音模型目录")
         with self._lock:
             if self._manager is None:
+                if not self.available:
+                    raise RuntimeError("R2T2 语音模型或原生库未就绪，请在模型设置中选择已有语音模型目录")
                 self._manager = importlib.import_module("speech.bridge").manager
             return self._manager
 
     def start(self, owner: str):
         with self._lock:
-            result = self.manager().start_live({"model_dir": str(self.resolve_model())}, {
+            if not self.available:
+                raise RuntimeError("R2T2 语音模型或原生库未就绪，请在模型设置中选择已有语音模型目录")
+            manager = self.manager()
+            # Chrome's worker can restart and lose the old sid. Native ASR
+            # permits one active stream, so retire this owner's orphan first.
+            for sid, former in list(self._owners.items()):
+                if former != owner:
+                    continue
+                try:
+                    manager.session_request('POST', sid, 'cancel', value={})
+                except RuntimeError:
+                    manager.close()  # Lost transport/generation cannot be reused.
+                    self._owners.clear()
+                    break
+                finally:
+                    self._owners.pop(sid, None)
+            result = manager.start_live({"model_dir": str(self.resolve_model())}, {
                 "language": "Auto", "context": "", "stream_chunk_ms": 320,
                 "min_segment_seconds": 4,
             })
             sid = result["session_id"]
+            self._finished.pop(sid, None)  # A new native generation may reuse an ID.
             self._owners[sid] = owner
         return {"session_id": sid, "sample_rate": result["sample_rate"]}
 
@@ -118,14 +139,48 @@ class SpeechSessions:
         })
 
     def finish(self, owner: str, sid: str, last_seq: int, total_samples: int):
+        with self._lock:
+            now = time.monotonic()
+            for key, cached in list(self._finished.items()):
+                if now - cached['created'] > 300:
+                    del self._finished[key]
+            if sid in self._finished:
+                cached = self._finished[sid]
+                if cached['owner'] != owner:
+                    raise PermissionError("语音会话无效或不属于此扩展")
+                if cached['watermark'] != (last_seq, total_samples):
+                    raise ValueError('同一已结束会话不能使用不同的音频水位')
+                return copy.deepcopy(cached['result'])
         manager = self._owned(owner, sid)
-        try:
-            return manager.session_request("POST", sid, "finish", value={
-                "last_seq": last_seq, "total_samples": total_samples,
-            })
-        finally:
+        result = manager.session_request("POST", sid, "finish", value={
+            "last_seq": last_seq, "total_samples": total_samples,
+        })
+        # A failed watermark/transport request can leave the worker active.
+        # Preserve ownership so the extension can retry or cancel the session.
+        if result.get('status') == 'finalized':
             with self._lock:
-                self._owners.pop(sid, None)
+                if self._owners.get(sid) == owner:
+                    self._finished[sid] = {'owner':owner, 'watermark':(last_seq,total_samples),
+                                           'result':copy.deepcopy(result), 'created':time.monotonic()}
+                    while len(self._finished) > 64:
+                        self._finished.popitem(last=False)
+                    self._owners.pop(sid, None)
+        return result
+
+    def revoke_extensions(self):
+        with self._lock:
+            sessions = [(sid, owner) for sid, owner in self._owners.items() if owner.startswith('chrome:')]
+            for sid, cached in list(self._finished.items()):
+                if cached['owner'].startswith('chrome:'):
+                    del self._finished[sid]
+            if sessions and len(sessions) == len(self._owners):
+                self.close()
+                return
+        for sid, owner in sessions:
+            try:
+                self.cancel(owner, sid)
+            except PermissionError:
+                pass  # The session may have ended while revocation was queued.
 
     def cancel(self, owner: str, sid: str):
         manager = self._owned(owner, sid)
@@ -143,3 +198,4 @@ class SpeechSessions:
                 self._manager.close()
                 self._manager = None
             self._owners.clear()
+            self._finished.clear()

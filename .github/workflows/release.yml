@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes "ConvRot INT8 2B/9B support, independent model paths, and pinned Windows acceleration dependencies. New full Windows runtime required for acceleration. Warm up before viewing. Video priority, persistent exact cache, subtitle prefetch, long polling and stable speech phrase delivery. Reload Chrome once after updating. Code ZIPs exclude runtimes and weights; ComfyUI runs independently."
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "Index Translate $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
 
   registry:
     needs: release

@@ -1,5 +1,5 @@
 class R2T2Capture extends AudioWorkletProcessor {
-    constructor() {
+    constructor(options = {}) {
         super();
         this.source = [];
         this.base = 0;
@@ -10,7 +10,31 @@ class R2T2Capture extends AudioWorkletProcessor {
         this.cutoff = 0.9 * Math.min(1, 16000 / sampleRate);
         this.radius = 16;
         this.stopped = false;
+        this.paused = !!options.processorOptions?.paused;
+        this.cycle = 0;
         this.port.onmessage = (event) => {
+            const message = event.data || {};
+            if (message.type === 'reset' && Number.isSafeInteger(message.cycle) && message.cycle >= this.cycle) {
+                this.source = []; this.pending = [];
+                this.base = this.seen = this.outputIndex = 0;
+                this.cycle = message.cycle;
+                this.paused = true;
+                this.stopped = false;
+                this.port.postMessage({type:'reset',cycle:this.cycle});
+                return;
+            }
+            if (message.cycle != null && message.cycle !== this.cycle) return;
+            if (message.type === 'pause') {
+                this.paused = !!message.paused;
+                this.port.postMessage({type:'paused',paused:this.paused,cycle:this.cycle});
+                return;
+            }
+            if (event.data?.type === "drain" && !this.stopped) {
+                this.paused = true;
+                this.produce(true);
+                this.emit(true);
+                this.port.postMessage({type: "drained", totalSamples: this.outputIndex,cycle:this.cycle});
+            }
             if (event.data?.type === "flush" && !this.stopped) {
                 this.stopped = true;
                 this.produce(true);
@@ -45,7 +69,7 @@ class R2T2Capture extends AudioWorkletProcessor {
         while (this.pending.length >= 640 || (force && this.pending.length)) {
             const count = Math.min(640, this.pending.length);
             const pcm = new Float32Array(this.pending.splice(0, count));
-            this.port.postMessage({type: "pcm", samples: pcm}, [pcm.buffer]);
+            this.port.postMessage({type: "pcm", samples: pcm,cycle:this.cycle}, [pcm.buffer]);
         }
     }
 
@@ -67,6 +91,7 @@ class R2T2Capture extends AudioWorkletProcessor {
 
     process(inputs) {
         if (this.stopped) return false;
+        if (this.paused) return true;
         const channels = inputs[0];
         if (!channels || !channels.length) return true;
         const length = channels[0].length;

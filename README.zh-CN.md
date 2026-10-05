@@ -1,10 +1,12 @@
 # ComfyUI Index Translate
 
+0.1.19 加强量化清单文件和层字段检查，损坏清单会得到明确错误；共享模型下载代码在网络提前结束时保留续传进度。模型路径、宿主 Python 和独立运行方式保持原有用法。
+
+0.1.18 补齐工作流缓存校验：独立加载器、加速代码、模型管理与模型清单发生变化时，节点会重新执行，避免复用升级前的旧结果。节点仍在自身 Python 中推理，执行后释放模型。
+
 0.1.17 支持真正的 CONVROT INT8。下载完整 `Index-Translate-2B-ConvRot-INT8` / `Index-Translate-9B-ConvRot-INT8` 目录，原样放入 `ComfyUI/models/index_translate/`；在节点 `model_path` 选择该目录或填写任意完整目录的绝对路径，精度选择 `auto` 或 `convrot-int8`。无需改名。配置、分词器、全部权重分片和 `index-quantization.json` 必须齐全。权重约 2.67 / 10.37 GB。
 
 Windows 用 **ComfyUI 自己的 Python** 执行 `install_convrot.py`，安装固定官方 comfy-kitchen 0.2.37、NVIDIA cuBLAS 13.2.2.2 wheel 到独立目录，不替换宿主 torch。新进程生效；回退只需移除 `index_translate_convrot.pth` 并重启。其他系统用宿主 Python 安装 `requirements-convrot.txt`。INT8 本版需要 NVIDIA CUDA，CPU 仍用官方模型。真实 Python 3.10 / torch 2.7/cu128 宿主工作流已通过，整合包两个端口被阻断时仍能独立翻译。
-
-Windows 常驻服务冷态计时：本机 2B 首次编译约 40–60 秒，9B 首次编译约 116 秒、加载另需约 20 秒；预热后 2B / 9B 六类样例生成中位数约 0.297 / 0.672 秒。冷态和热态需分别看待。
 
 节点仍在执行结束后释放模型。Windows 常驻服务的静态缓存编译速度不适用于该节点；此宿主 GDN 使用正确的参考路径，首次工作流含加载耗时。不得借用整合包 Python、依赖目录或 HTTP 服务。
 

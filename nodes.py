@@ -55,7 +55,9 @@ class IndexTranslateText:
         root = model_directory(model_path)
         signature = [(file.name, file.stat().st_size, file.stat().st_mtime_ns)
                      for file in sorted(root.glob("*")) if file.is_file() and not file.name.startswith(".")]
-        core_hash = hashlib.sha256((_core_directory / "inference.py").read_bytes()).hexdigest()
+        core_hash = [(file.name, hashlib.sha256(file.read_bytes()).hexdigest())
+                     for file in sorted(_core_directory.iterdir())
+                     if file.is_file() and file.suffix in ('.py', '.json')]
         return hashlib.sha256(json.dumps([signature, core_hash]).encode()).hexdigest()
 
     def translate(self, text, model_path, source, target, device, precision,

@@ -46,6 +46,42 @@ def ready(record):
         return False
 
 
+def status_info():
+    record = read_record()
+    is_owned = bool(record and owned(record))
+    is_ready = bool(is_owned and ready(record))
+    return {"owned": is_owned, "ready": is_ready,
+            "pid": record["pid"] if is_owned else None,
+            "port": record["port"] if is_owned else None,
+            "url": f"http://127.0.0.1:{record['port']}" if is_owned else None}
+
+
+def install_desktop():
+    """Promote the release's legacy-updater-compatible EXE to the package root."""
+    target = ROOT / "T8IndexTranslate.exe"
+    packaged = ROOT / "app" / "T8IndexTranslate.exe"
+    if packaged.is_file():
+        content = packaged.read_bytes()
+        if not content.startswith(b"MZ") or not 0 < len(content) <= 10 * 1024 * 1024:
+            raise RuntimeError("启动器 EXE 文件无效，请重新下载代码更新包。")
+        if not target.is_file() or target.read_bytes() != content:
+            with exclusive_lock(DATA / "desktop.lock", "请先关闭 EXE 启动器窗口，再安装新版启动器。"):
+                temporary = target.with_name(target.name + ".tmp")
+                temporary.write_bytes(content)
+                os.replace(temporary, target)
+    if not target.is_file():
+        raise RuntimeError("缺少 T8IndexTranslate.exe，请使用完整整合包或最新代码更新包。")
+    return target
+
+
+def desktop(port, browser=True):
+    arguments = [str(install_desktop()), "--port", str(port)]
+    if not browser:
+        arguments.append("--no-browser")
+    subprocess.Popen(arguments, cwd=ROOT)
+    print("T8 Index Translate · By T8star 启动器窗口已打开。")
+
+
 def start(port, browser):
     with exclusive_lock(DATA / "launcher.lock", "启动脚本正在运行，请稍后重试。"):
         _start(port, browser)
@@ -102,18 +138,27 @@ def stop():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["start", "stop", "status", "diagnose"])
+    parser.add_argument("command", choices=["start", "desktop", "stop", "status", "diagnose"])
     parser.add_argument("--port", type=int, default=8098)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--json", action="store_true", help="以 JSON 返回本包服务状态")
     args = parser.parse_args()
     try:
         if args.command == "start":
-            start(args.port, not args.no_browser)
+            # Existing CMD files invoke `start` after applying an update. Hand
+            # that invocation to the persistent GUI too, without a second
+            # service. The GUI uses --no-browser to reach the service-only path.
+            if args.no_browser:
+                start(args.port, False)
+            else:
+                desktop(args.port)
+        elif args.command == "desktop":
+            desktop(args.port, not args.no_browser)
         elif args.command == "stop":
             stop()
         elif args.command == "status":
-            record = read_record()
-            print("服务就绪" if record and owned(record) and ready(record) else "服务未就绪")
+            info = status_info()
+            print(json.dumps(info) if args.json else "服务就绪" if info["ready"] else "服务未就绪")
         else:
             sys.path.insert(0, str(ROOT / "_vendor"))
             from index_translate_core.inference import hardware

@@ -269,13 +269,17 @@ def create_app(root=ROOT, state=None, port=8098):
     def revoke(request: Request):
         client(request, ui_only=True)
         state.revoke_clients()
+        speech.revoke_extensions()
         return {"revoked": True}
 
     @app.post("/api/jobs", status_code=202)
     def submit(value: JobRequest, request: Request):
         owner = client(request)
         try:
-            return state.submit(owner, value.model_dump(exclude_none=True))
+            # Pairing may be revoked between initial auth and queue insertion.
+            with state.wake:
+                owner = client(request)
+                return state.submit(owner, value.model_dump(exclude_none=True))
         except OverflowError as error:
             raise HTTPException(429, str(error))
         except ValueError as error:
@@ -322,8 +326,8 @@ def create_app(root=ROOT, state=None, port=8098):
     def unload(request: Request):
         client(request, ui_only=True)
         try:
-            speech.close()
             state.unload()
+            speech.close()
             return {"model_ready": False}
         except ValueError as error:
             raise HTTPException(409, str(error))
@@ -351,7 +355,18 @@ def create_app(root=ROOT, state=None, port=8098):
     @app.post("/api/speech/start")
     def speech_start(request: Request):
         owner = client(request)
-        return speech_call(lambda: speech.start(owner))
+        def start_owned():
+            result = speech.start(owner)
+            try:
+                client(request)  # Native model loading can outlive credential revocation.
+            except HTTPException:
+                try:
+                    speech.cancel(owner, result['session_id'])
+                except (PermissionError, RuntimeError):
+                    pass  # Cancellation retires ownership even if transport fails.
+                raise
+            return result
+        return speech_call(start_owned)
 
     @app.post("/api/speech/{sid}/feed")
     def speech_feed(sid: str, value: SpeechFeed, request: Request):

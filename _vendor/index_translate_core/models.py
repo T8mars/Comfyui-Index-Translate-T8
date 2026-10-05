@@ -213,6 +213,10 @@ def download_model(model_id: str, root: str | Path, source: str = "modelscope",
                                     progress({"file": item["path"], "file_bytes": offset,
                                               "completed_bytes": transferred + offset, "total_bytes": required,
                                               "elapsed_seconds": round(time.monotonic() - started, 1)})
+                    if offset < item["size"]:
+                        # A clean EOF can still be a network interruption. Keep
+                        # the prefix for Range retry; hash only the complete file.
+                        raise OSError(f"下载连接提前结束 {item['path']}，保留进度以便续传")
                     if offset != item["size"] or digest(partial, cancel) != item["sha256"]:
                         partial.unlink(missing_ok=True)
                         raise ValueError(f"下载校验失败 {item['path']}")

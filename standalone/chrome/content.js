@@ -790,6 +790,10 @@
     await start(true);
   }
   new MutationObserver((changes) => {
+    // SPA rendering or page cleanup can remove our node while translation is
+    // idle. Keep the same toolbar (and saved position) mounted in that case.
+    if (toolbar && !toolbar.host.isConnected)
+      document.documentElement.append(toolbar.host);
     if (!enabled || paused) return;
     const relevant = changes.some((change) => {
       const el =

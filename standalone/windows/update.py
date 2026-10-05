@@ -13,7 +13,7 @@ import time
 import urllib.request
 import urllib.error
 import zipfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from process_lock import exclusive_lock
 
@@ -25,7 +25,7 @@ MAX_ARCHIVE = 50 * 1024 * 1024
 ALLOWED_DIRS = {"app", "web", "_vendor", "speech"}
 ALLOWED_FILES = {
     "VERSION", "run.py", "launcher.py", "process_lock.py", "update.py", "update.cmd",
-    "start.cmd", "stop.cmd", "diagnose.cmd", "README.zh-CN.md", "requirements.lock.txt",
+    "start.cmd", "stop.cmd", "diagnose.cmd", "T8IndexTranslate.exe", "README.zh-CN.md", "requirements.lock.txt",
     "LICENSE", "NOTICE",
 }
 
@@ -70,29 +70,38 @@ def latest_release() -> tuple[str, dict] | None:
 def validated_entries(payload: bytes, tag: str) -> list[tuple[str, bytes]]:
     result = []
     seen = set()
+    expanded_bytes = 0
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         if len(archive.infolist()) > 200:
             raise ValueError("代码包文件过多")
         for item in archive.infolist():
             if item.is_dir():
                 continue
-            parts = PurePosixPath(item.filename).parts
-            if not parts or any(part in {"", ".", ".."} for part in parts):
+            parts = item.filename.split('/')
+            if (not parts or any(part in {'', '.', '..'} or part.rstrip(' .') != part or
+                    any(ord(char) < 32 or char in '\\:*?"<>|' for char in part) or
+                    re.fullmatch(r'(?i)(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])', part.split('.')[0])
+                    for part in parts)):
                 raise ValueError("代码包路径不安全")
             if not (len(parts) == 1 and parts[0] in ALLOWED_FILES or
                     len(parts) > 1 and parts[0] in ALLOWED_DIRS):
                 raise ValueError(f"代码包包含禁止路径：{item.filename}")
-            if item.filename in seen or item.file_size > 10 * 1024 * 1024:
+            normalized = item.filename.casefold()
+            if (normalized in seen or item.file_size > 10 * 1024 * 1024 or
+                    any(normalized.startswith(name + '/') or name.startswith(normalized + '/') for name in seen)):
                 raise ValueError("代码包文件重复或过大")
+            expanded_bytes += item.file_size
+            if expanded_bytes > MAX_ARCHIVE:
+                raise ValueError('解压后的代码包超出大小限制')
             mode = (item.external_attr >> 16) & 0o170000
             if mode not in (0, 0o100000):
                 raise ValueError("代码包包含非普通文件")
-            seen.add(item.filename)
+            seen.add(normalized)
             result.append((item.filename, archive.read(item)))
     content = dict(result)
     if content.get("VERSION", b"").decode("utf-8").strip() != tag.removeprefix("v"):
         raise ValueError("代码包版本不匹配")
-    if not {"run.py", "launcher.py", "update.py", "web/index.html"} <= seen:
+    if not {"run.py", "launcher.py", "update.py", "web/index.html"} <= content.keys():
         raise ValueError("代码包缺少必要文件")
     return result
 
@@ -112,7 +121,14 @@ def apply_release(tag: str, asset: dict) -> None:
             candidate_lock.decode("utf-8").splitlines() != current_lock.read_text("utf-8").splitlines()):
         raise RuntimeError("新版需要更新 Python 依赖，请获取作者分享的新完整整合包")
     DATA.mkdir(exist_ok=True)
-    with exclusive_lock(DATA / "update.lock", "另一更新任务正在运行"):
+    with (exclusive_lock(DATA / "desktop.lock", "请先关闭 EXE 启动器窗口，再运行 update.cmd 更新"),
+          exclusive_lock(DATA / "update.lock", "另一更新任务正在运行"),
+          exclusive_lock(DATA / "launcher.lock", "启动脚本正在运行，请稍后更新"),
+          exclusive_lock(DATA / "service.lock", "服务正在运行；请先停止服务，再运行 update.cmd")):
+        if (record := read_record()) and owned(record):
+            raise RuntimeError('服务正在运行；请先停止服务，再运行 update.cmd')
+        if version(tag) <= version(VERSION.read_text('utf-8')):
+            raise ValueError('目标版本不高于当前版本，请重新检查更新')
         backup = DATA / "update-backup" / VERSION.read_text("utf-8").strip()
         backup.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="update-", dir=DATA) as temporary:

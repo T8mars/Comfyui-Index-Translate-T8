@@ -4,6 +4,17 @@
 
 基于 [IndexTeam 的 Index-Translate](https://github.com/bilibili/Index-Translate) 的本地翻译项目。此仓库包含三个交付物：独立 ComfyUI 节点、Windows 本地整合包的代码更新、Chrome 网页自动翻译扩展。**ComfyUI 节点直接在 ComfyUI 环境推理，不连接 Windows 整合包**；Chrome 扩展连接本机整合包服务。
 
+## 0.1.20 更新与下载
+
+[下载 v0.1.20 Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20)。此次包含此前 0.1.18 / 0.1.19 的 BUG 修复，以及新启动器、预热状态和声音翻译反馈。
+
+- **Windows**：已有 0.1.17 加速整合包先关闭服务，再运行 `update.cmd`；也可下载 `IndexTranslate-Windows-code-v0.1.20.zip`，直接覆盖解压到原整合包根目录，再运行 `start.cmd`。新增 **By T8star** 原生 EXE，启动后常驻任务栏，关窗口会取消任务、释放翻译/语音模型并等待自有服务退出。为兼容旧更新器，代码 ZIP 的 EXE 放在 `app/`，启动时自动放到根目录，用户无需改名或搬文件。GitHub 代码 ZIP 不含 Python 或模型，不能单独作为完整整合包使用；0.1.16 及更旧运行时仍需完整包升级。
+- **预热**：按钮旁持续显示排队、加载/编译、完成或具体错误，刷新恢复任务，支持取消和重试。完成为绿色提示；eager 回退会明确说明。
+- **Chrome**：`IndexTranslate-Chrome-v0.1.20.zip` 解压后直接包含 `manifest.json`。已有用户覆盖原扩展目录，在 `chrome://extensions` 重新加载并刷新网页，配对保留。点击「直接识别声音」立即反馈授权准备、模型加载、等待声音、采集进度、暂停或具体失败原因；进度不插入视频字幕。
+- **节点**：继续使用自己的 Python 和模型路径，包含量化清单检查、升级后的缓存失效与下载续传修复。模型目录无需改名；BF16 与 ConvRot INT8 均可选择完整目录。权重未改变，无需重新下载。
+
+验证：Python 111 项及 4 subtest，预热 UI 14 项，声音反馈 14 项，Chrome 生命周期 51 项；真实 2B INT8 和 R2T2 活动会话下关闭 EXE，CUDA allocated / reserved 均释放至 0。具体升级说明见 [Windows](standalone/windows/README.zh-CN.md)、[Chrome](standalone/chrome/README.zh-CN.md) 和 [Release notes](docs/releases/v0.1.20.md)。
+
 ## 安装 ComfyUI 节点
 
 在 ComfyUI Manager 中搜索 **Index Translate · T8star-Aix** 安装；也可克隆本仓库到 `ComfyUI/custom_nodes/Comfyui-Index-Translate-T8`，用 **ComfyUI 自己的 Python** 安装 `requirements.txt` 后重启。节点使用现有 PyTorch，不会随包安装模型或 Python。Transformers 5.17.0 可能影响宿主其他节点，升级前请检查兼容性。

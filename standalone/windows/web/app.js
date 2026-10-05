@@ -23,6 +23,8 @@ let running = null,
   status,
   pageIdentity = null,
   initialized = false;
+let warmupJob = null, warmupWatching = false, warmupSubmitting = false,
+  warmupError = "", warmupConnectionError = "";
 const terminal = new Set(["completed", "failed", "cancelled"]);
 function notice(message, error = false) {
   $("notice").textContent = message;
@@ -457,12 +459,18 @@ async function refresh() {
   try {
     const refreshed = await api("/api/status");
     if (pageIdentity && refreshed.settings.identity !== pageIdentity) {
+      status = null;
+      warmupJob = null;
+      saveWarmup();
+      warmupError = "本地服务已更换，请刷新页面后再加载与预热。";
+      renderWarmup();
       $("service").textContent = "服务已更换";
       notice("本地服务已更换，请重新加载页面后再操作。", true);
       return;
     }
     pageIdentity ??= refreshed.settings.identity;
     status = refreshed;
+    renderWarmup();
     $("service").textContent = status.busy ? "正在翻译" : "本地服务就绪";
     $("model-name").textContent =
       status.settings.model_id.split("/").at(-1) +
@@ -501,12 +509,23 @@ async function refresh() {
       initialized = true;
     }
   } catch (error) {
+    status = null;
+    renderWarmup();
     $("service").textContent = "服务未连接";
     notice(error.message, true);
   }
 }
 async function start() {
   await refresh();
+  try {
+    warmupJob = JSON.parse(sessionStorage.getItem("index-warmup") || "null");
+    if (warmupJob && (!warmupJob.id || warmupJob.identity !== pageIdentity)) {
+      warmupJob = null;
+      sessionStorage.removeItem("index-warmup");
+    }
+  } catch { sessionStorage.removeItem("index-warmup"); }
+  renderWarmup();
+  if (warmupJob) watchWarmup();
   const id = sessionStorage.getItem("index-job");
   try {
     const saved = sessionStorage.getItem("index-request");
@@ -521,24 +540,101 @@ async function start() {
   }
   setInterval(() => {
     refresh();
+    if (warmupJob) watchWarmup();
     if (running) resumeRequest(running, epoch);
   }, 5000);
 }
-start();
-
+function renderWarmup() {
+  const button = $("warmup"), panel = $("warmup-state"), label = $("warmup-status");
+  const pending = warmupSubmitting || !!warmupJob;
+  button.disabled = pending || !status;
+  button.setAttribute("aria-busy", String(pending));
+  $("warmup-cancel").hidden = !warmupJob;
+  $("warmup-cancel").disabled = !!warmupJob?.cancelling;
+  if (pending) {
+    panel.dataset.state = "working";
+    const seconds = warmupJob ? Math.max(0, Math.floor((Date.now() - warmupJob.started) / 1000)) : 0;
+    const phase = warmupSubmitting ? "正在提交预热请求" : warmupJob.cancelling ? "正在取消预热"
+      : warmupConnectionError ? "连接中断，正在恢复预热状态"
+      : {queued:"预热排队中",loading:"正在加载模型并预热",running:"正在验证预热效果"}[warmupJob.phase] || "正在加载模型并预热";
+    button.textContent = phase + "…";
+    label.textContent = `${phase} · 已等待 ${seconds} 秒。${warmupConnectionError || (seconds >= 120 ? "任务仍在处理中；可等待完成或取消预热。" : "首次编译可能需要一到两分钟，完成后会明确显示。")}`;
+  } else if (warmupError) {
+    panel.dataset.state = "error";
+    button.textContent = "重试加载与预热";
+    label.textContent = warmupError;
+  } else if (!status) {
+    panel.dataset.state = "connecting";
+    button.textContent = "等待服务连接";
+    label.textContent = "服务尚未连接，正在重试；当前不能确认模型是否加载。";
+  } else if (status.model_ready) {
+    panel.dataset.state = "ready";
+    button.textContent = "重新预热";
+    const seconds = Number(status.acceleration?.warmup_seconds);
+    label.textContent = status.acceleration?.compiled
+      ? `预热已完成，可以开始翻译 · 编译加速已启用${Number.isFinite(seconds) ? ` · 首次预热 ${seconds.toFixed(1)} 秒` : ""}`
+      : "模型已加载，可以开始翻译 · 当前使用常规推理。";
+  } else {
+    panel.dataset.state = "idle";
+    button.textContent = "加载并预热";
+    label.textContent = "模型尚未加载。点击“加载并预热”，此处会持续显示进度和完成状态。";
+  }
+}
+function saveWarmup() {
+  if (warmupJob) sessionStorage.setItem("index-warmup", JSON.stringify(warmupJob));
+  else sessionStorage.removeItem("index-warmup");
+}
+async function watchWarmup() {
+  if (!warmupJob || warmupWatching) return;
+  const info = warmupJob;
+  warmupWatching = true;
+  try {
+    while (warmupJob === info) {
+      if (status && status.settings.identity !== info.identity) throw new Error("本地服务已更换，请刷新页面后重新预热。");
+      const result = await api("/api/jobs/" + encodeURIComponent(info.id) + "?wait_ms=10000", {signal:AbortSignal.timeout(12000)});
+      if (warmupJob !== info) return;
+      warmupConnectionError = "";
+      info.phase = result.status;
+      saveWarmup();
+      if (terminal.has(result.status)) {
+        warmupJob = null;
+        saveWarmup();
+        if (result.status !== "completed") warmupError = result.status === "cancelled" ? "预热已取消，可以重新加载。" : "预热失败：" + (result.error || "请检查模型目录及设备设置。");
+        await refresh();
+        renderWarmup();
+        return;
+      }
+      renderWarmup();
+      await delay(300);
+    }
+  } catch (error) {
+    if (warmupJob !== info) return;
+    if (error.status && [400,403,404,409,422].includes(error.status)) {
+      warmupJob = null; saveWarmup();
+      warmupError = "无法继续确认预热任务：" + error.message;
+    } else warmupConnectionError = "状态确认失败，自动重试：" + error.message;
+    renderWarmup();
+  } finally { warmupWatching = false; }
+}
 $("warmup").addEventListener("click", async () => {
-  const button = $("warmup");
-  button.disabled = true;
+  if (warmupJob || warmupSubmitting) return;
+  warmupSubmitting = true;
+  warmupError = ""; warmupConnectionError = "";
+  renderWarmup();
   try {
     const job = await post("/api/warmup");
-    notice("正在加载并预热，首次编译可能需要一到两分钟。完成后再启动视频翻译。");
-    const deadline = Date.now() + 300000;
-    while (Date.now() < deadline) {
-      const result = await api("/api/jobs/" + job.id + "?wait_ms=10000", {signal:AbortSignal.timeout(12000)});
-      if (result.status === "completed") { notice("模型已预热，可以开始翻译。"); await refresh(); return; }
-      if (["failed", "cancelled"].includes(result.status)) throw new Error(result.error || "预热失败");
-    }
-    throw new Error("预热仍在处理中，请查看任务状态");
-  } catch (error) { notice(error.message,true); }
-  finally { button.disabled = false; }
+    warmupJob = {id:job.id,identity:pageIdentity,started:Date.now(),phase:job.status};
+    saveWarmup();
+  } catch (error) { warmupError = "预热请求未确认：" + error.message; }
+  finally { warmupSubmitting = false; renderWarmup(); }
+  if (warmupJob) watchWarmup();
 });
+$("warmup-cancel").addEventListener("click", async () => {
+  const info = warmupJob;
+  if (!info) return;
+  info.cancelling = true; renderWarmup();
+  try { await api("/api/jobs/" + encodeURIComponent(info.id), {method:"DELETE"}); }
+  catch (error) { info.cancelling = false; warmupConnectionError = "取消未确认：" + error.message; renderWarmup(); }
+});
+setInterval(renderWarmup, 1000);
+start();

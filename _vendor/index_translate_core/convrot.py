@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 MANIFEST = 'index-quantization.json'
@@ -18,7 +19,7 @@ def inspect_quantized_model(root, model_id, verify, cancel, models):
     if not isinstance(data, dict) or data.get('schema') != 1 or data.get('format') != 'convrot-int8':
         raise ValueError('不支持的量化清单格式')
     base_id = data.get('source_model_id')
-    if base_id not in models or (model_id and model_id != base_id):
+    if not isinstance(base_id, str) or base_id not in models or (model_id and model_id != base_id):
         raise ValueError('量化模型与所选 2B/9B 型号不匹配')
     spec = models[base_id]
     expected_source = [{'path': v['path'], 'size': v['size'], 'sha256': v['sha256']} for v in spec['files']]
@@ -29,6 +30,19 @@ def inspect_quantized_model(root, model_id, verify, cancel, models):
     files, layers = data.get('files'), data.get('quantized_layers')
     if not isinstance(files, list) or not isinstance(layers, list) or not layers or len(files) > 128 or len(layers) > 2048:
         raise ValueError('量化清单缺少完整文件或层信息')
+    for entry in files:
+        if (not isinstance(entry, dict) or not isinstance(entry.get('path'), str) or not entry['path']
+                or type(entry.get('size')) is not int or entry['size'] < 0
+                or not isinstance(entry.get('sha256'), str)
+                or not re.fullmatch(r'[0-9a-fA-F]{64}', entry['sha256'])):
+            raise ValueError('量化清单文件项需包含路径、非负整数大小和 SHA256')
+    for entry in layers:
+        if (not isinstance(entry, dict) or not isinstance(entry.get('name'), str) or not entry['name']
+                or not isinstance(entry.get('shape'), list) or len(entry['shape']) != 2
+                or any(type(size) is not int or size <= 0 for size in entry['shape'])
+                or type(entry.get('groupsize')) is not int or entry['groupsize'] not in (16, 64, 256)
+                or entry['shape'][1] % entry['groupsize'] or entry.get('role') not in ('linear', 'embedding')):
+            raise ValueError('量化清单层项的名称、shape、分组或角色无效')
     names = [entry['path'] for entry in files]
     layer_names = [entry['name'] for entry in layers]
     if len(set(names)) != len(names) or len(set(layer_names)) != len(layer_names):
