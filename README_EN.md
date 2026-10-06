@@ -4,6 +4,12 @@
 
 A local translation project built on [IndexTeam's Index-Translate](https://github.com/bilibili/Index-Translate). This repository contains three deliverables: an independent ComfyUI node, source updates for a standalone Windows bundle, and a Chrome web-page translation extension. **The ComfyUI node runs inference inside ComfyUI and does not connect to the Windows bundle.** The Chrome extension connects to the local Windows service.
 
+## Version 0.1.22: Chinese SRT to English SRT
+
+[Download v0.1.22](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.22). The independent ComfyUI `IndexTranslateSRT` node and the Windows **Subtitle translation** tab translate cue text while retaining original SRT numbers and timestamps. Chinese (`zh`) to English (`en`) is the default; bilingual output is optional. Supports UTF-8, UTF-16 with BOM and GB18030, up to 1 MiB / 5,000 cues. Complete results export as UTF-8 BOM SRT; cancelled, failed or truncated work does not produce a partial file.
+
+This accepts existing timed subtitles. Plain text or audio/video first needs timed transcription; this feature requires no ASR model or additional dependency. The node loads its own model once per file and releases it after completion. Stop the standalone service and run `update.cmd` to upgrade while retaining models/settings/pairing. Matching prebuilt speech resources from v0.1.21 are reused. See [Windows](standalone/windows/README.zh-CN.md), [node](README.zh-CN.md) and [release notes](docs/releases/v0.1.22.md).
+
 ## Version 0.1.21
 
 [Download v0.1.21](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.21). Fixes convolution keyword compatibility, legacy Qwen cache / CPU reference paths, private bundled compiler discovery before FLA import, and user/global Python package contamination. The full Windows bundle includes the required tools; first warmup generates GPU-specific caches automatically, without requiring Mamba, Visual Studio or a system CUDA Toolkit. Optional acceleration failures verify ordinary inference fallback. Precision and memory checks use the current GPU. Existing accelerated bundles (0.1.17–0.1.20) can stop the service and run `update.cmd`; models and settings are preserved. See [validation and hardware scope](docs/releases/v0.1.21.md).

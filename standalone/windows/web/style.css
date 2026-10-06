@@ -169,6 +169,8 @@ select, input {
   box-shadow: 0 2px 5px #18273f08;
 }
 .small { min-height: 43px; padding: 8px 13px; }
+.editor-bar .srt-mode { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; padding: 5px 0; background: transparent; color: #64738a; font-size: 12px; font-weight: 650; }
+.srt-mode input { flex: 0 0 16px; width: 16px; min-height: 16px; height: 16px; padding: 0; margin: 0; box-shadow: none; accent-color: var(--pink); }
 .glossary { margin: 16px 0 0; padding: 12px 18px; border: 1px solid #e7eafa; border-radius: 12px; background: #f2f5ff; color: #56627b; font-size: 13px; }
 summary { cursor: pointer; font-weight: 650; }
 .glossary p { margin: 10px 0; }

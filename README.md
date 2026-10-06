@@ -4,6 +4,12 @@
 
 基于 [IndexTeam 的 Index-Translate](https://github.com/bilibili/Index-Translate) 的本地翻译项目。此仓库包含三个交付物：独立 ComfyUI 节点、Windows 本地整合包的代码更新、Chrome 网页自动翻译扩展。**ComfyUI 节点直接在 ComfyUI 环境推理，不连接 Windows 整合包**；Chrome 扩展连接本机整合包服务。
 
+## 0.1.22 中文 SRT → 英文 SRT
+
+[下载 v0.1.22](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.22)。ComfyUI 新增 **Index Translate SRT 字幕翻译** 节点，Windows 新增 **字幕翻译** 页：导入中文 SRT，默认 `zh` → `en`，仅翻译正文，保留原序号及时间轴。支持 UTF-8 / UTF-16 BOM / GB18030，最多 1 MiB / 5000 条；可选双语，失败、截断或取消不会导出不完整文件。节点保存到 ComfyUI `output/IndexTranslate/`，整合包完成后下载 SRT。
+
+此功能处理已有字幕，不需要语音模型或额外依赖；纯文本/音视频需要先取得带时间轴的字幕。节点在自身 Python 中推理，一个 SRT 只加载一次模型，结束释放。旧加速整合包关闭服务后运行 `update.cmd`，模型、路径、配对保留；匹配的 v0.1.21 语音组件继续复用。详见 [字幕节点](README.zh-CN.md)、[Windows 用法](standalone/windows/README.zh-CN.md) 和 [发行说明](docs/releases/v0.1.22.md)。
+
 ## 0.1.21 更新与下载
 
 [下载 v0.1.21 修复版](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.21)：修复 `hidden_states` / `x=` 内核调用、旧 Qwen 缓存与 CPU 回退、包内编译工具定位，以及外部 Python 包混入导致的 FastAPI / Transformers 报错。完整 Windows 包自带所需工具，首次预热自动生成 GPU 缓存，无需另装 Mamba、Visual Studio 或系统 CUDA Toolkit。可选加速失败会验证普通推理回退；当前 GPU 的精度和显存检查也已修正。详见 [修复及实测范围](docs/releases/v0.1.21.md)。已有 0.1.17–0.1.20 加速包关闭服务后运行 `update.cmd`，模型及原配置保留。

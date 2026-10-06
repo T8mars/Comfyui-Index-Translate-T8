@@ -15,6 +15,7 @@ from pathlib import Path
 
 from index_translate_core.inference import LocalTranslator, PROMPT_VERSION, TranslationCancelled, hardware
 from index_translate_core.models import DownloadCancelled, catalog, download_model, inspect_model, model_revision
+from index_translate_core.subtitles import MAX_SRT_BYTES, parse_srt, render_srt
 
 PLACEHOLDER = re.compile(r"%%IT_[A-Za-z0-9_]+%%")
 TERMINAL = {"completed", "failed", "cancelled"}
@@ -178,7 +179,8 @@ class State:
                 return self.get_job(client, previous[0])
             if self.quit.is_set():
                 raise ValueError("服务正在关闭，请稍后重试")
-            if not request["paragraphs"] or sum(len(p["text"]) for p in request["paragraphs"]) > 48000:
+            limit = MAX_SRT_BYTES * 2 if request.get('kind') == 'srt' else 48000
+            if not request["paragraphs"] or sum(len(p["text"]) for p in request["paragraphs"]) > limit:
                 raise ValueError("请求为空或总长度超过限制")
             ids = [p["id"] for p in request["paragraphs"]]
             if len(ids) != len(set(ids)):
@@ -199,6 +201,9 @@ class State:
                       "prompt_version": PROMPT_VERSION,
                       "runtime": {"device": settings["device"], "precision": settings["precision"],
                                   "context_limit": settings["context_limit"], "output_budget": request["output_budget"]}}
+            if request.get('kind') == 'srt':
+                result['subtitle'] = {'filename': request['filename'], 'source': request['source'],
+                                      'target': request['target'], 'bilingual': request['bilingual']}
             if cancelled:
                 result.update(status="cancelled", error="任务已取消")
             payload = {"request": request, "settings": settings}
@@ -237,6 +242,21 @@ class State:
             if not row:
                 raise KeyError(job_id)
             return json.loads(row[0])
+
+    def subtitle_export(self, client, job_id):
+        with self.lock:
+            result = self.get_job(client, job_id)
+            row = self.db.execute('SELECT payload FROM jobs WHERE client=? AND id=?', (client, job_id)).fetchone()
+            request = json.loads(row[0])['request']
+            if request.get('kind') != 'srt':
+                raise KeyError(job_id)
+            if result['status'] != 'completed':
+                raise ValueError('请等待全部字幕翻译完成后下载，失败或取消的任务不会导出不完整 SRT')
+            cues = parse_srt(request['srt_text'])
+            if [item['id'] for item in result['results']] != [str(i) for i in range(len(cues))]:
+                raise ValueError('字幕结果不完整或顺序无效，请重新翻译')
+            translated = [item['text'] for item in result['results']]
+        return render_srt(cues, translated, request['bilingual']), request['filename'], request['target']
 
     def update_job(self, job_id, result):
         with self.wake:

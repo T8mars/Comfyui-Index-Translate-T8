@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import zipfile
+import tomllib
 ROOT=Path(__file__).resolve().parents[1]
 manifest=json.loads((ROOT/'standalone/windows/speech/native-binaries.json').read_text('utf-8'))
 asset=manifest['release_asset']
@@ -33,6 +34,10 @@ with zipfile.ZipFile(file) as archive:
         assert info.file_size==records[info.filename]['bytes']
         with archive.open(info) as stream:digest=hashlib.file_digest(stream,'sha256').hexdigest()
         assert digest==records[info.filename]['sha256']
-with (ROOT/'dist/SHA256SUMS.txt').open('a',encoding='utf-8') as stream:
-    stream.write(f'{actual}  {name}\n')
-print('Prebuilt native asset and all 25 CPU/CUDA/CRT files verified; release checksums updated.')
+current_tag='v'+tomllib.loads((ROOT/'pyproject.toml').read_text('utf-8'))['project']['version']
+if tag==current_tag:
+    with (ROOT/'dist/SHA256SUMS.txt').open('a',encoding='utf-8') as stream:
+        stream.write(f'{actual}  {name}\n')
+# An unchanged native component can be pinned to an earlier public Release.
+# Its digest remains in the manifest; SHA256SUMS lists this Release's files.
+print(f'Prebuilt native asset from {tag} and all 25 CPU/CUDA/CRT files verified.')

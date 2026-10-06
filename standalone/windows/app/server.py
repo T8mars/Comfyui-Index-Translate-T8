@@ -7,6 +7,7 @@ import secrets
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request, Query, Path as ApiPath
 from fastapi.encoders import jsonable_encoder
@@ -22,6 +23,7 @@ os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("DO_NOT_TRACK", "1")
 from index_translate_core.inference import hardware, PROMPT_VERSION
 from index_translate_core.models import catalog, inspect_model
+from index_translate_core.subtitles import subtitle_request, MAX_SRT_BYTES
 from .state import State
 from .folder_picker import choose_directory
 from .speech_service import SpeechSessions
@@ -68,6 +70,25 @@ class Settings(StrictModel):
     def official_model(cls, value):
         if value not in catalog() or catalog()[value].get("unavailable_reasons"):
             raise ValueError("该模型版本尚不完整")
+        return value
+
+
+class SubtitleRequest(StrictModel):
+    request_id: str = Field(min_length=8, max_length=128)
+    expected_identity: str | None = Field(default=None, min_length=1, max_length=128)
+    text: str = Field(min_length=1, max_length=MAX_SRT_BYTES)
+    filename: str = Field(default='subtitles.srt', min_length=1, max_length=180)
+    source: str = Field(default='zh', min_length=1, max_length=64)
+    target: str = Field(default='en', min_length=1, max_length=64)
+    output_budget: int = Field(default=256, ge=1, le=8192)
+    glossary: dict[str, str] = Field(default_factory=dict, max_length=100)
+    bilingual: bool = False
+
+    @field_validator('target')
+    @classmethod
+    def explicit_target(cls, value):
+        if value == 'auto' or not value.strip():
+            raise ValueError('请选择明确的目标语言')
         return value
 
 
@@ -127,11 +148,12 @@ def create_app(root=ROOT, state=None, port=8098):
     async def boundary(request, call_next):
         if request.headers.get("host") not in hosts:
             return JSONResponse({"error": "Host rejected"}, status_code=403)
-        if request.headers.get("content-length", "0").isdigit() and int(request.headers.get("content-length", "0")) > 256000:
+        max_body = 2 * MAX_SRT_BYTES if request.url.path == '/api/subtitles' else 256000
+        if request.headers.get("content-length", "0").isdigit() and int(request.headers.get("content-length", "0")) > max_body:
             return JSONResponse({"error": "Request too large"}, status_code=413)
         body = bytearray()
         async for chunk in request.stream():
-            if len(body) + len(chunk) > 256000:
+            if len(body) + len(chunk) > max_body:
                 return JSONResponse({"error": "Request too large"}, status_code=413)
             body.extend(chunk)
         request._body = bytes(body)
@@ -192,7 +214,7 @@ def create_app(root=ROOT, state=None, port=8098):
         with state.lock:
             return {"service_ready": True, "model_ready": state.translator is not None and state.loaded_spec is not None,
                     "acceleration": state.acceleration,
-                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1", "job_wait_v1", "video_priority_v1", "convrot_int8_v1"] +
+                    "capabilities": ["cancel_by_request_v1", "expected_identity_v1", "job_wait_v1", "video_priority_v1", "convrot_int8_v1", "srt_translation_v1"] +
                     (["speech_r2t2_v1"] if speech.available else []),
                     "busy": state.worker_busy, "settings": state.public_settings(), "download": dict(state.download),
                     "cleanup_error": state.cleanup_error,
@@ -284,6 +306,35 @@ def create_app(root=ROOT, state=None, port=8098):
             raise HTTPException(429, str(error))
         except ValueError as error:
             raise HTTPException(400, str(error))
+
+    @app.post('/api/subtitles', status_code=202)
+    def submit_subtitles(value: SubtitleRequest, request: Request):
+        owner = client(request, ui_only=True)
+        try:
+            options = value.model_dump(exclude={'text'}, exclude_none=True)
+            payload = subtitle_request(value.text, options)
+            with state.wake:
+                owner = client(request, ui_only=True)
+                return state.submit(owner, payload)
+        except OverflowError as error:
+            raise HTTPException(429, str(error)) from error
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from error
+
+    @app.get('/api/subtitles/jobs/{job_id}/download')
+    def download_subtitles(job_id: str, request: Request):
+        try:
+            text, original, target = state.subtitle_export(client(request, ui_only=True), job_id)
+        except KeyError as error:
+            raise HTTPException(404, '字幕任务不存在') from error
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+        stem = re.sub(r'[\x00-\x1f<>:"/\\|?*]', '_', original.replace('\\', '/').split('/')[-1])
+        stem = stem.removesuffix('.srt').removesuffix('.SRT').strip(' .') or 'subtitles'
+        language = re.sub(r'[^A-Za-z0-9_-]', '_', target) or 'translated'
+        filename = f'{stem}.{language}.srt'
+        return Response(text.encode('utf-8-sig'), media_type='application/x-subrip',
+                        headers={'Content-Disposition': f'attachment; filename="subtitles.srt"; filename*=UTF-8\'\'{quote(filename)}'})
 
     @app.get("/api/jobs/{job_id}")
     def get_job(job_id: str, request: Request, wait_ms: int = Query(default=0, ge=0, le=20000)):

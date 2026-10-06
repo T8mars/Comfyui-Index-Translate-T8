@@ -6,6 +6,7 @@
   <title>Index Translate · 本地翻译</title>
   <link rel="stylesheet" href="/static/style.css">
   <script defer src="/static/app.js"></script>
+  <script defer src="/static/subtitles.js"></script>
 </head>
 <body>
 <main>
@@ -23,6 +24,7 @@
 
   <nav aria-label="功能">
     <button type="button" class="tab active" data-panel="translate">文本翻译</button>
+    <button type="button" class="tab" data-panel="subtitles">字幕翻译</button>
     <button type="button" class="tab" data-panel="models">模型与设备</button>
     <button type="button" class="tab" data-panel="browser">Chrome 配对</button>
     <button type="button" class="tab" data-panel="diagnostics">运行诊断</button>
@@ -43,6 +45,15 @@
     </div>
     <details class="glossary"><summary>术语表（可选）</summary><p>以 JSON 对象填写固定译法，例如 {"Index":"索引"}。</p><textarea id="glossary" rows="3" spellcheck="false">{}</textarea></details>
     <div class="action-row"><div class="action-copy"><strong>文本翻译</strong><span id="progress" role="status">准备就绪</span></div><div class="action-buttons"><button type="button" id="cancel" class="secondary" disabled>取消</button><button type="button" id="submit" class="primary">开始翻译</button></div></div>
+  </section>
+
+  <section id="subtitles" class="panel" hidden>
+    <div class="title-row"><div><h2>SRT 字幕翻译</h2><p>导入中文 SRT，生成英文字幕。保留原序号和时间轴，仅翻译正文。</p></div></div>
+    <div class="settings-grid"><label>导入字幕<input id="srt-file" type="file" accept=".srt"></label><label>原文语言<select id="srt-source"></select></label><label>译文语言<select id="srt-target"></select></label><label>每条输出预算<select id="srt-budget"><option value="128">128 tokens</option><option value="256" selected>256 tokens</option><option value="512">512 tokens</option><option value="1024">1024 tokens</option></select></label></div>
+    <p id="srt-file-name">也可以粘贴完整 SRT；支持 UTF-8、UTF-16 BOM 和 GB18030 文件，最多 1 MiB / 5000 条。</p>
+    <div class="editor"><div class="editor-bar"><label for="srt-input">字幕原文</label><label class="srt-mode"><input type="checkbox" id="srt-bilingual">双语字幕（原文 + 译文）</label></div><textarea id="srt-input" placeholder="1&#10;00:00:00,000 --&gt; 00:00:02,000&#10;你好，世界。" spellcheck="false"></textarea></div>
+    <p>使用“模型与设备”页的模型和当前术语表。时间码由程序保留，不交给模型改写。此页处理已有 SRT；纯文本或音视频需要先取得带时间轴的字幕。</p>
+    <div class="action-row"><div class="action-copy"><strong>字幕翻译</strong><span id="srt-progress" role="status" aria-live="polite">准备就绪</span></div><div class="action-buttons"><button type="button" id="srt-cancel" class="secondary" disabled>取消</button><button type="button" id="srt-download" class="secondary" disabled>下载 SRT</button><button type="button" id="srt-submit" class="primary">开始字幕翻译</button></div></div>
   </section>
 
   <section id="models" class="panel" hidden>

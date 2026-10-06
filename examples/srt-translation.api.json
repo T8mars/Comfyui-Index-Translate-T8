@@ -1,0 +1,20 @@
+{
+  "1": {
+    "class_type": "IndexTranslateSRT",
+    "inputs": {
+      "srt_text": "1\n00:00:00,000 --> 00:00:02,000\n你好，世界。\n\n2\n00:00:02,500 --> 00:00:05,000\n欢迎使用本地字幕翻译。\n",
+      "srt_file": "",
+      "model_path": "Index-Translate-2B",
+      "source": "zh",
+      "target": "en",
+      "device": "auto",
+      "precision": "auto",
+      "output_budget": 256,
+      "context_limit": 4096,
+      "bilingual": false,
+      "save_file": true,
+      "filename_prefix": "IndexTranslate/subtitles",
+      "glossary": "{}"
+    }
+  }
+}

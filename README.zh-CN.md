@@ -1,5 +1,9 @@
 # ComfyUI Index Translate
 
+0.1.22 新增 **Index Translate SRT 字幕翻译** 节点。默认中文 `zh` → 英文 `en`：粘贴中文 SRT，或在 `srt_file` 填写现有字幕文件路径（有值时优先读取文件，相对路径位于 ComfyUI `input`）。字幕序号和时间轴由程序保留，只翻译正文；支持 UTF-8、UTF-16 BOM、GB18030，最多 1 MiB / 5000 条。
+
+`save_file=true` 时自动保存 UTF-8 BOM 英文 SRT 到 `ComfyUI/output/IndexTranslate/`，`file_path` 返回实际文件路径；也输出 `translated_srt` 和元数据。`bilingual=true` 可导出原文和译文双语字幕。`output_budget` 是每条字幕的预算。一个文件只加载一次模型，翻译结束释放；格式错误、截断或取消不会生成不完整文件。示例 API 工作流见 [srt-translation.api.json](examples/srt-translation.api.json)。此节点处理已有 SRT；中文音视频需先通过语音识别取得时间轴，纯文本不含真实字幕时间信息。
+
 0.1.21 修复 `hidden_states` / `x=` 卷积调用兼容错误。旧版 Qwen 缓存使用完整 PyTorch 回退，不注入新版融合解码或静态缓存；可选内核不可用时使用普通推理，不要求安装 mamba-ssm。节点仍使用 ComfyUI 自己的 Python、PyTorch 和模型目录，不连接 Windows 服务或借用整合包运行时。
 
 CUDA `auto` 按当前 GPU 的能力与空闲显存选档位；无原生 BF16 的旧 GPU 默认官方模型 FP32，NF4 使用 FP16 计算。固定 BF16 / CONVROT INT8 档位要求 NVIDIA Ampere 或更新的 GPU，旧显卡会在加载前得到具体提示。硬件兼容门控已测；实际加速硬件验证为 RTX 5090 Laptop，其他 GPU 未逐一实测。
