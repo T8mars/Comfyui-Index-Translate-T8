@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "build_id": "llama-ad6c66839af3-multi-cu128-cpu-c3791eef0140feab",
+  "llama_cpp_commit": "ad6c66839af3c5646fba8c6c2e2087a1e4e38948",
+  "python_abi": "cp312-win_amd64",
+  "cuda_toolkit": "12.8.61",
+  "cuda_driver_min": 12080,
+  "cuda_architectures": [
+    "50-virtual",
+    "61-virtual",
+    "70-virtual",
+    "75-virtual",
+    "80-virtual",
+    "86-real",
+    "89-real",
+    "90-virtual",
+    "120a-real"
+  ],
+  "cpu_baseline": "x64 SSE4.2 (GGML_NATIVE=OFF, AVX/AVX2/BMI2=OFF)",
+  "cpu_backend_cuda_dependency": false,
+  "vc_runtime_version": "14.51.36247.0",
+  "vc_runtime_source": "https://aka.ms/vc14/vc_redist.x64.exe",
+  "archive_sha256": "c3791eef0140feab5b23e1ccd64de5d92a7d7d2d852f111efdc0058370c20fa5",
+  "archive_bytes": 156394803,
+  "release_asset": {
+    "name": "IndexTranslate-Speech-native-v0.1.21.zip",
+    "url": "https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/download/v0.1.21/IndexTranslate-Speech-native-v0.1.21.zip"
+  },
+  "parts": [
+    {
+      "path": "native-binaries.000.bin",
+      "bytes": 8388608,
+      "sha256": "1ea589bb3ec03566b0ebf57089f82f54ddf849f1a86fad4e0d78a2dd02417874"
+    },
+    {
+      "path": "native-binaries.001.bin",
+      "bytes": 8388608,
+      "sha256": "6d8d6b040e72e90f871799a2ff99984b46278863174ed3555b7e45e231219cf3"
+    },
+    {
+      "path": "native-binaries.002.bin",
+      "bytes": 8388608,
+      "sha256": "902cf8fff107b41acb388f46ee08007cd762b164f08fd35e4c8b6e17dee8839c"
+    },
+    {
+      "path": "native-binaries.003.bin",
+      "bytes": 8388608,
+      "sha256": "c0ffbcd5dd0943b8a53204e39c918ad0d476c25f2f64d3ac351aca4852f44f0c"
+    },
+    {
+      "path": "native-binaries.004.bin",
+      "bytes": 8388608,
+      "sha256": "539d1578e30fc1c38b701b7172d6e269a01866f6c60892dc8a3d9e26ea719e6d"
+    },
+    {
+      "path": "native-binaries.005.bin",
+      "bytes": 8388608,
+      "sha256": "fc3ae97f1fdf71c29f81230c96eb88e306b4139fb714a4b31baf37e1fbb764c1"
+    },
+    {
+      "path": "native-binaries.006.bin",
+      "bytes": 8388608,
+      "sha256": "d06077ab9b50c79f9242c20d86315fb74b124c8c3a373c38d8c7ff7b34983b79"
+    },
+    {
+      "path": "native-binaries.007.bin",
+      "bytes": 8388608,
+      "sha256": "6359e80471602399bdc2484603944ccf53d7c2b72d7bf736cc0392b4d1b09719"
+    },
+    {
+      "path": "native-binaries.008.bin",
+      "bytes": 8388608,
+      "sha256": "29906e5b8915beadd81a1cbb206bfde7c0d68ab9061dc669200e0f615b62cfd6"
+    },
+    {
+      "path": "native-binaries.009.bin",
+      "bytes": 8388608,
+      "sha256": "a746f5738ea81e447618f599ef43bf051b98d77f43f75e9ba083ebc3c1e23826"
+    },
+    {
+      "path": "native-binaries.010.bin",
+      "bytes": 8388608,
+      "sha256": "e056e1244ee9be83fb6fee90498cd638353b6a8fdf2a7368e2e648cc87580be1"
+    },
+    {
+      "path": "native-binaries.011.bin",
+      "bytes": 8388608,
+      "sha256": "ab9986fb2d5f4025656111077a6a351e1334818adadbbc2c1d78f6d4a98302c1"
+    },
+    {
+      "path": "native-binaries.012.bin",
+      "bytes": 8388608,
+      "sha256": "b063c3f42547c73d970c4280b459c29da0bd214b9c9872aa8bdffa5a3cda320e"
+    },
+    {
+      "path": "native-binaries.013.bin",
+      "bytes": 8388608,
+      "sha256": "e7a24305e550910eb9d9cc9457ac7d911b261ff2509107aca8340331c063f527"
+    },
+    {
+      "path": "native-binaries.014.bin",
+      "bytes": 8388608,
+      "sha256": "cadc6103d805048acbc07bad6d1d360bbd23551db10916444dfb54cb32bb4216"
+    },
+    {
+      "path": "native-binaries.015.bin",
+      "bytes": 8388608,
+      "sha256": "717b1c9c335b86c6f21b066b1284e25d9722baf26e3db04240a36d6647b99560"
+    },
+    {
+      "path": "native-binaries.016.bin",
+      "bytes": 8388608,
+      "sha256": "f505bc29d77cccd00ee2d45cf42ba56af80b56c9b235c3639b9024cff336d895"
+    },
+    {
+      "path": "native-binaries.017.bin",
+      "bytes": 8388608,
+      "sha256": "1e74a802d9ebda586b55d83b13bd210f854140d65b22fedac78ba506e6e9cbbd"
+    },
+    {
+      "path": "native-binaries.018.bin",
+      "bytes": 5399859,
+      "sha256": "d22676d46414872346b8375669d4105ec3a8b020f402a9dfcf4e1c39c2c8991d"
+    }
+  ],
+  "files": [
+    {
+      "path": "bin/Release/ggml-base.dll",
+      "bytes": 670720,
+      "sha256": "3541e64bca452ace520feba4a4f36db030593d7ecd4ea8c2eb07c0b7b3073078"
+    },
+    {
+      "path": "bin/Release/ggml-cpu.dll",
+      "bytes": 773120,
+      "sha256": "a103be9052c1ff73d62f2fd99baa64e573bbeb0d1c86ed0e036b08c0bbb23add"
+    },
+    {
+      "path": "bin/Release/ggml-cuda.dll",
+      "bytes": 164237312,
+      "sha256": "556ecfb91df33d7fe3cc308830e5abeedc66fae2a3e8ad33186dd321f69526b2"
+    },
+    {
+      "path": "bin/Release/ggml.dll",
+      "bytes": 64000,
+      "sha256": "2b46ad47e39f5588be494ae69304980d25434e7a195ac6251e0eff37a9fd2a10"
+    },
+    {
+      "path": "bin/Release/llama.dll",
+      "bytes": 2613760,
+      "sha256": "31a2a65e611fb32131e8ea9e424ea193507b017aa9c0ee1bb8144e6e96c7d771"
+    },
+    {
+      "path": "bin/Release/mtmd.dll",
+      "bytes": 1262592,
+      "sha256": "a3f104300906522e5b9316d5adfee206997e98e02e441d067491ddff0e6b30ac"
+    },
+    {
+      "path": "cpu/bin/Release/ggml-base.dll",
+      "bytes": 670720,
+      "sha256": "a7661360ccfb6e4d51244545f071435a349ec2caffa4be4a1023e9f6fddc7341"
+    },
+    {
+      "path": "cpu/bin/Release/ggml-cpu.dll",
+      "bytes": 773120,
+      "sha256": "076a17aa0feaadeeaa509200d0cb56d10cda43f3fa64e2f30d5ab8a22210b677"
+    },
+    {
+      "path": "cpu/bin/Release/ggml.dll",
+      "bytes": 63488,
+      "sha256": "f09771bbe805f8493f2e25980aafd10818540dc02ff46d988957b112bb22e322"
+    },
+    {
+      "path": "cpu/bin/Release/llama.dll",
+      "bytes": 2613760,
+      "sha256": "801f365126fafbd070cd556d737975d5b575e4e5757d0930860aea1f8e483605"
+    },
+    {
+      "path": "cpu/bin/Release/mtmd.dll",
+      "bytes": 1262592,
+      "sha256": "58e02637b00bd2a61cd4d0ef195915d57e07eed38311dd87005cc38b976fb677"
+    },
+    {
+      "path": "cpu/python/Release/qwen3asr_native.cp312-win_amd64.pyd",
+      "bytes": 226304,
+      "sha256": "8c89e986e35b9979c01fe56867e570adc55cef1e02d805543c35f92f07b95481"
+    },
+    {
+      "path": "crt/concrt140.dll",
+      "bytes": 374200,
+      "sha256": "54716f0738af891f283d213b5c8d11b25896bb8ee3097d301eae718560cf974e"
+    },
+    {
+      "path": "crt/msvcp140.dll",
+      "bytes": 643512,
+      "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca"
+    },
+    {
+      "path": "crt/msvcp140_1.dll",
+      "bytes": 35768,
+      "sha256": "206c931bf90fdad8816de3b5e2ef80b2bcaa9406c89ecc05fe6fddffe251e982"
+    },
+    {
+      "path": "crt/msvcp140_2.dll",
+      "bytes": 274872,
+      "sha256": "d50d7883f20d1dc6191768d3746f52dd9cac89c346ffaed5be1f110c2f34a838"
+    },
+    {
+      "path": "crt/msvcp140_atomic_wait.dll",
+      "bytes": 57792,
+      "sha256": "3d0cbfaa1bf3eecf5a3f4491d2960ee803cb994f30292c6adc4a07c498f60e2b"
+    },
+    {
+      "path": "crt/msvcp140_codecvt_ids.dll",
+      "bytes": 31160,
+      "sha256": "8a65c7596ef2e6938731f5a1058e7e40145b6d97967cc649231a076b9a608d78"
+    },
+    {
+      "path": "crt/vcamp140.dll",
+      "bytes": 417728,
+      "sha256": "dc283ffb87e9b82e687ed4e899ae062a209aa338207abfc9a89d61407d678bd4"
+    },
+    {
+      "path": "crt/vccorlib140.dll",
+      "bytes": 350648,
+      "sha256": "09f93d5ff96ae09767f3e1af3cdd43a5a58f2598654fc63089429bb6f9f4737f"
+    },
+    {
+      "path": "crt/vcomp140.dll",
+      "bytes": 212920,
+      "sha256": "95d4ce4a6802d1e18b5e0e1722cc30ea72ca7e033f83828f05c0b7b993fe7cbf"
+    },
+    {
+      "path": "crt/vcruntime140.dll",
+      "bytes": 178616,
+      "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"
+    },
+    {
+      "path": "crt/vcruntime140_1.dll",
+      "bytes": 50112,
+      "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e"
+    },
+    {
+      "path": "crt/vcruntime140_threads.dll",
+      "bytes": 38840,
+      "sha256": "40f39e8cee5f5a531b4010e18b807e8fe265b908dc58f959ecb7ebc6ea6cb11a"
+    },
+    {
+      "path": "python/Release/qwen3asr_native.cp312-win_amd64.pyd",
+      "bytes": 226304,
+      "sha256": "f822537f50ec41c96a0e1ca895cf43987c49f90ab7c34607bb7635fd86468e44"
+    }
+  ]
+}

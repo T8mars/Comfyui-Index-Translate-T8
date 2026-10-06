@@ -1,3 +1,6 @@
 * text=auto eol=lf
 *.cmd -text whitespace=cr-at-eol
 *.exe -text
+*.bin -text
+*.dll -text
+*.pyd -text

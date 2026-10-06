@@ -1,5 +1,7 @@
 # T8 Index Translate 本地网页翻译
 
+0.1.21 与 Windows 修复版同步版本号。语音 WinError 10054 的连接恢复、进程错误反馈和多架构原生库由 Windows 0.1.21 提供；请先关闭整合包并运行其 `update.cmd`。扩展覆盖原解压目录后，在 `chrome://extensions` 重新加载并刷新网页，配对保留。视频内仍只显示原文和译文。
+
 0.1.20 本地修复：点击「直接识别声音」后立即在视频按钮旁显示准备/授权状态，随后持续显示 R2T2 模型加载、等待视频声音、已采集秒数、暂停、结束或具体错误。关闭再打开弹窗会读取当前状态；授权失败保留 Chrome 原始原因和重试提示。停止期间禁止重复启动，迟到回复不会覆盖停止状态。视频字幕区继续只显示原文和译文，不显示「翻译中」等进度文字。升级原解压目录后，在 `chrome://extensions` 重新加载本扩展并刷新网页即可，原配对保留。
 
 0.1.19 本地修复：无关标签页操作不再中断当前语音启动；暂停门控采集，视频结束排空声音并提交最后确认句；视频源变化会结束旧轨和旧会话。后台重启留下的采集会明确收尾并提示重新点击，透明隐藏的播放器不留悬空按钮。建议配套本地 0.1.19 整合包，以支持语音结束响应的幂等重试。
@@ -16,7 +18,7 @@ Chrome 120 及以上的 Manifest V3 扩展，已在 Chrome for Testing 154 的�
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。扩展会在安装、浏览器启动以及每天自动检查 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/latest)，发现新版时显示 `NEW` 徽标，设置页可手动检查。Chrome 不允许「加载已解压」的扩展自行替换程序文件；收到提示后下载新版 ZIP、覆盖解压文件夹，再到扩展页点击「重新加载」。
 
-1. 下载 [v0.1.20 Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20) 的 `IndexTranslate-Chrome-v0.1.20.zip`，解压后目录直接包含 `manifest.json`。不要在 Chrome 中选择 `.zip` 文件。
+1. 下载 [v0.1.20 Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20) 的 `IndexTranslate-Chrome-v0.1.20.zip`，解压后目录直接包含 `manifest.json`。本工作区也备有 `dist/IndexTranslate-Chrome-0.1.20-unpacked`，或含 `chrome_index_translate` 外层目录的 `IndexTranslate-Chrome-0.1.20.zip`。不要在 Chrome 中选择 `.zip` 文件。
 2. 在 `chrome://extensions` 开启开发者模式，点击「加载已解压的扩展程序」，选择上一步的 **文件夹**（不是其中某个文件）。已有扩展保持原目录并点击「重新加载」，无需重新安装或配对。
 3. 在整合包 Chrome 配对页生成配对码；在扩展设置输入本机服务地址和一次性配对码。
 4. 打开普通 HTTP/HTTPS 网页，右侧会自动出现「译」按钮，单击开始翻译，无需每次先点 Chrome 工具栏。播放器内会自动出现「字幕译」「语音译」「停止」按钮。若希望进入本站就开始翻译，可在扩展菜单勾选「自动翻译这个站点」。

@@ -11,6 +11,8 @@ sys.path.insert(0, str(ROOT / "_vendor"))
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("DO_NOT_TRACK", "1")
 if __name__ == "__main__":
+    from app.private_runtime import ensure_private_runtime
+    ensure_private_runtime(__file__)
     import argparse
     import uvicorn
     from app.server import create_app

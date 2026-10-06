@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import gc
 import hashlib
 import json
@@ -31,6 +32,13 @@ TERMINAL_RETENTION_SECONDS = 3600
 _PYD = list((ROOT / ".runtime/build-native-cu128/python").rglob("qwen3asr_native*.pyd"))
 _NATIVE_SHA = hashlib.sha256(_PYD[0].read_bytes()).hexdigest()[:12] if len(_PYD) == 1 else "unbuilt"
 BUILD_ID = "llama-ad6c66839af3-cu128-" + _NATIVE_SHA
+if (ROOT / 'native-binaries.json').is_file():
+    try:
+        value = json.loads((ROOT / 'native-binaries.json').read_text('utf-8'))
+        if isinstance(value, dict) and isinstance(value.get('build_id'), str):
+            BUILD_ID = value['build_id']
+    except (OSError, ValueError):
+        pass  # models/load reports the manifest validation error in Chinese.
 
 
 def error(code: str, message: str, status: int = 400) -> web.HTTPException:
@@ -52,6 +60,7 @@ class LiveState:
     next_seq: int = 0
     samples: int = 0
     last_digest: str = ""
+    last_ack: dict | None = None
     status: str = "active"
     revision: int = 0
     events: list[dict] = field(default_factory=list)
@@ -116,12 +125,13 @@ class Service:
                 replacement = await asyncio.to_thread(NativeQ8Engine, **normalized)
                 self.engine = replacement
                 self.model_config = normalized
-            fingerprint = hashlib.sha256(json.dumps({"build": BUILD_ID, "config": normalized,
+            backend = getattr(self.engine, 'backend_status', {})
+            fingerprint = hashlib.sha256(json.dumps({"build": BUILD_ID, "config": normalized, "backend": backend,
                 "model_sha256": OFFICIAL[MODEL_NAME][1],
                 "projector_sha256": OFFICIAL[PROJECTOR_NAME][1]}, sort_keys=True).encode()).hexdigest()
             return {"loaded": True, "model": self.engine.model_name, "projector": self.engine.projector_name,
                     "generation": self.generation, "config": normalized,
-                    "build_id": BUILD_ID, "model_fingerprint": fingerprint,
+                    "build_id": BUILD_ID, "model_fingerprint": fingerprint, "backend": backend,
                     "model_sha256": OFFICIAL[MODEL_NAME][1], "projector_sha256": OFFICIAL[PROJECTOR_NAME][1]}
 
     def require_engine(self) -> NativeQ8Engine:
@@ -162,6 +172,9 @@ async def auth(request: web.Request, handler):
     except (ValueError, TypeError) as exc:
         code = "CONTEXT_LIMIT" if str(exc).startswith("CONTEXT_LIMIT") else "INVALID_INPUT"
         raise error(code, str(exc)) from exc
+    except RuntimeError as exc:
+        raise web.HTTPInternalServerError(text=json.dumps({"code": "SPEECH_RUNTIME_ERROR",
+            "message": str(exc)[:600]}, ensure_ascii=False), content_type='application/json') from exc
 
 
 async def health(request: web.Request) -> web.Response:
@@ -355,7 +368,13 @@ async def feed(request: web.Request) -> web.Response:
         if state.status != "active":
             raise error("SESSION_CLOSED", "Session is no longer active", 409)
         if seq == state.next_seq - 1 and start_sample + len(pcm) == state.samples and digest == state.last_digest:
-            return web.json_response({"ack_seq": seq, "ack_sample": state.samples, "events": [], "duplicate": True})
+            # A committed feed response can be lost when localhost resets.
+            # Replay its text events as well as the watermark, without decoding
+            # audio twice. The browser deduplicates events by revision.
+            state.updated = time.monotonic()
+            return web.json_response({**(state.last_ack or {
+                "ack_seq": seq, "ack_sample": state.samples, "events": [], "revision": state.revision}),
+                "duplicate": True})
         if seq != state.next_seq or start_sample != state.samples:
             raise error("SEQUENCE_GAP", "Out-of-order or missing PCM samples", 409)
         if state.samples + len(pcm) > MAX_LIVE_SAMPLES:
@@ -371,7 +390,9 @@ async def feed(request: web.Request) -> web.Response:
         state.events.extend(events)
         state.revision += len(events)
         state.updated = time.monotonic()
-        return web.json_response({"ack_seq": seq, "ack_sample": state.samples, "events": events, "revision": state.revision})
+        answer = {"ack_seq": seq, "ack_sample": state.samples, "events": events, "revision": state.revision}
+        state.last_ack = copy.deepcopy(answer)
+        return web.json_response(answer)
 
 
 async def finish(request: web.Request) -> web.Response:

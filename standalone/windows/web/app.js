@@ -338,7 +338,8 @@ $("browse-model-path").addEventListener("click", async () => {
   }
 });
 function speechStatus(value) {
-  $("speech-model-status").textContent = value.active ? "正在识别视频声音；停止后可修改路径。"
+  $("speech-model-status").textContent = value.active ?
+    (value.backend?.warning || `正在使用 ${value.backend?.backend === "cpu" ? "CPU" : "CUDA"} 识别视频声音；停止后可修改路径。`)
     : value.available ? "语音模型已就绪；启动视频翻译时直接读取此目录。"
     : "语音模型未就绪，请选择已有 R2T2 模型目录。";
 }
@@ -484,6 +485,8 @@ async function refresh() {
       d.status === "idle"
         ? "暂无下载"
         : `${d.status} · ${((d.completed_bytes || 0) / 1e9).toFixed(2)} / ${((d.total_bytes || 0) / 1e9).toFixed(2)} GB${d.file ? " · " + d.file : ""}${d.error ? " · " + d.error : ""}`;
+    const speech = await api("/api/speech/settings");
+    speechStatus(speech);
     if (!initialized) {
       const models = await api("/api/models");
       for (const model of models) {
@@ -503,9 +506,7 @@ async function refresh() {
       $("precision").value = s.precision;
       $("context").value = s.context_limit;
       $("idle").value = s.idle_unload_seconds;
-      const speech = await api("/api/speech/settings");
       $("speech-model-path").value = speech.model_path;
-      speechStatus(speech);
       initialized = true;
     }
   } catch (error) {

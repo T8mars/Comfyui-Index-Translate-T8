@@ -1,5 +1,9 @@
-# Registry package contains only the independent ComfyUI node.
+# The Registry artifact contains the independent ComfyUI node only.
 standalone/
-.github/
+tools/
 scripts/
-*.zip
+docs/
+.github/
+.comfyignore
+.gitattributes
+.gitignore

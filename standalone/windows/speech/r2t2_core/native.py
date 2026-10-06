@@ -13,6 +13,8 @@ from typing import Any
 
 import numpy as np
 
+from .native_bundle import ensure_native_bundle, select_backend
+
 ROOT = Path(__file__).resolve().parents[1]
 GGUF_DIR = ROOT / "models" / "Confucius4-R2T2-GGUF"
 MODEL_NAME = "Confucius4-R2T2-Q8_0.gguf"
@@ -22,6 +24,7 @@ OFFICIAL = {
     PROJECTOR_NAME: (348_336_544, "8dc2c67e6a0484114928142d098db7ad94ae9f34c78948ef9d37a9678418cb65"),
 }
 _DLL_HANDLES: list[Any] = []
+_DLL_BACKEND: Path | None = None
 SUPPORTED_LANGUAGES = frozenset({"Chinese", "English", "Cantonese", "Japanese", "Korean",
                                  "German", "French", "Russian", "Portuguese", "Spanish", "Italian"})
 
@@ -56,14 +59,26 @@ def verify_pair(directory: Path = GGUF_DIR, *, hash_files: bool = True) -> tuple
 
 
 def _load_extension(build: Path):
+    global _DLL_BACKEND
     if os.name != "nt":
         raise RuntimeError("This worker build is for Windows x64")
     build = build.resolve(strict=True)
+    if _DLL_BACKEND is not None and _DLL_BACKEND != build:
+        raise RuntimeError('语音 DLL 已在此进程中初始化，切换后端需关闭整合包并重新启动')
     pyd_files = list((build / "python").rglob("qwen3asr_native*.pyd"))
     if len(pyd_files) != 1:
         raise FileNotFoundError(f"Expected one qwen3asr_native .pyd under {build / 'python'}; found {len(pyd_files)}")
     pyd_dir = pyd_files[0].parent
-    dll_dirs = {p.parent for p in build.rglob("*.dll")}
+    # CPU and CUDA builds have identically named DLLs. Never register both.
+    dll_dirs = {build / 'bin/Release'}
+    crt = (build.parent if build.name == 'cpu' else build) / 'crt'
+    if crt.is_dir():
+        dll_dirs.add(crt)
+    loaded = sys.modules.get('qwen3asr_native')
+    if loaded is not None:
+        if Path(getattr(loaded, '__file__', '')).resolve() != pyd_files[0].resolve():
+            raise RuntimeError('语音原生库已在此进程中加载，切换 CPU/CUDA 后端需关闭整合包并重新启动')
+        return loaded
     cuda_bin = Path(os.environ.get("CUDA_PATH", r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8")) / "bin"
     # Reuse the standalone runtime's CUDA libraries; no Toolkit installation is required.
     torch_lib = Path(sys.prefix) / "Lib/site-packages/torch/lib"
@@ -71,11 +86,29 @@ def _load_extension(build: Path):
         dll_dirs.add(torch_lib)
     elif cuda_bin.is_dir():
         dll_dirs.add(cuda_bin)
-    for dll_dir in sorted(dll_dirs):
-        _DLL_HANDLES.append(os.add_dll_directory(str(dll_dir)))
-    if str(pyd_dir) not in sys.path:
-        sys.path.insert(0, str(pyd_dir))
-    return importlib.import_module("qwen3asr_native")
+    _DLL_BACKEND = build
+    added = []
+    added_path = str(pyd_dir) not in sys.path
+    success = False
+    try:
+        for dll_dir in sorted(dll_dirs):
+            added.append(os.add_dll_directory(str(dll_dir)))
+        if added_path:
+            sys.path.insert(0, str(pyd_dir))
+        module = importlib.import_module("qwen3asr_native")
+        if Path(module.__file__).resolve() != pyd_files[0].resolve():
+            raise RuntimeError('加载了其他路径的语音原生库，请关闭整合包后重新启动')
+        _DLL_HANDLES.extend(added)
+        success = True
+        return module
+    except (ImportError, OSError) as exc:
+        raise RuntimeError('语音原生库 DLL 加载失败，请校验完整整合包及安全软件隔离记录；无需安装编译器') from exc
+    finally:
+        if not success:
+            for handle in added:
+                handle.close()
+            if added_path and str(pyd_dir) in sys.path:
+                sys.path.remove(str(pyd_dir))
 
 
 def build_prompt(context: str = "", language: str | None = None, prefix: str = "") -> str:
@@ -126,14 +159,20 @@ class NativeQ8Engine:
         hash_files: bool = True,
     ) -> None:
         model, projector = verify_pair(model_dir, hash_files=hash_files)
-        native = _load_extension(build_dir)
+        manifest = ensure_native_bundle(build_dir)
+        self.backend_status = select_backend(manifest, gpu_layers)
+        effective_layers = self.backend_status['gpu_layers']
+        selected_build = Path(build_dir) if effective_layers != 0 else Path(build_dir) / 'cpu'
+        if not selected_build.is_dir():
+            raise RuntimeError('当前整合包缺少对应的预编译语音运行库，请安装最新更新包；无需自行编译')
+        native = _load_extension(selected_build)
         self.model_name = model.name
         self.projector_name = projector.name
         self.n_ctx = n_ctx
         self._lock = threading.RLock()
         self._native = native.Qwen3ASRNative(
             str(model), str(projector), n_ctx, n_batch, n_threads,
-            gpu_layers != 0, gpu_layers,
+            effective_layers != 0, effective_layers,
         )
 
     def generate(self, audio: np.ndarray, *, context: str = "", language: str | None = None,

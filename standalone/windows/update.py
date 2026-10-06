@@ -191,4 +191,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    from app.private_runtime import ensure_private_runtime
+    ensure_private_runtime(__file__)
     main()

@@ -260,7 +260,7 @@ async function audioFeed(tabId, value) {
       const terminal = takeSpeechEvents(final, current.asrRevision, true);
       await sendSpeech(tabId, terminal.events, current);
       current.asrRevision = terminal.revision;
-      const next = await api(current.cfg, "/api/speech/start", "POST", {}, 180000);
+      const next = await api(current.cfg, "/api/speech/start", "POST", {}, 900000);
       if (audioSessions.get(tabId) !== current) {
         await cancelSpeech(current.cfg, next.session_id);
         return;
@@ -374,7 +374,7 @@ async function audioStartNow(tabId, streamId, cfg, generation, intent) {
     if (audioSessions.get(tabId) !== session) return;
     if (!status.capabilities?.includes("speech_r2t2_v1"))
       throw new Error("请升级独立整合包，安装 R2T2 语音组件");
-    const result = await api(cfg, "/api/speech/start", "POST", {}, 180000);
+    const result = await api(cfg, "/api/speech/start", "POST", {}, 900000);
     if (audioSessions.get(tabId) !== session) {
       await cancelSpeech(cfg, result.session_id);
       return;
@@ -422,7 +422,7 @@ function audioRestart(tabId, speechEpoch) {
       current.retired = [];
       if (!alive()) return {restarted:false};
       if (!reset?.ok) throw new Error(reset?.error || '视频声音采集已结束，请重新启用语音翻译');
-      const started = await api(current.cfg,'/api/speech/start','POST',{},180000);
+      const started = await api(current.cfg,'/api/speech/start','POST',{},900000);
       if (!alive()) { await cancelSpeech(current.cfg,started.session_id); return {restarted:false}; }
       current.sid = started.session_id;
       const playback = await chrome.tabs.sendMessage(tabId,{type:'IT_VIDEO_SPEECH',source:'',ready:true,speechEpoch});

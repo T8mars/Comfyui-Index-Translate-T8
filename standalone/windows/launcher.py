@@ -105,7 +105,7 @@ def _start(port, browser):
     instance = secrets.token_urlsafe(24)
     environment = dict(os.environ, PYTHONUTF8="1", HF_HUB_DISABLE_TELEMETRY="1", DO_NOT_TRACK="1")
     log = (DATA / "service.log").open("ab")
-    subprocess.Popen([sys.executable, "-u", str(ROOT / "run.py"), "--port", str(port), "--instance", instance],
+    subprocess.Popen([sys.executable, "-E", "-s", "-X", "utf8", "-u", str(ROOT / "run.py"), "--port", str(port), "--instance", instance],
                      cwd=ROOT, env=environment, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
                      creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
     log.close()
@@ -137,6 +137,8 @@ def stop():
 
 
 if __name__ == "__main__":
+    from app.private_runtime import ensure_private_runtime
+    ensure_private_runtime(__file__)
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["start", "desktop", "stop", "status", "diagnose"])
     parser.add_argument("--port", type=int, default=8098)

@@ -115,7 +115,7 @@ namespace T8IndexTranslate {
         CommandResult Python(string script, string arguments) {
             string python=Path.Combine(root,"runtime","python.exe");
             if (!File.Exists(python) || !File.Exists(Path.Combine(root,script))) throw new FileNotFoundException("缺少私有 Python 或启动文件，请使用完整整合包。");
-            var info=new ProcessStartInfo(python, "\"" + Path.Combine(root,script) + "\" " + arguments) {
+            var info=new ProcessStartInfo(python, "-E -s -X utf8 \"" + Path.Combine(root,script) + "\" " + arguments) {
                 WorkingDirectory=root,UseShellExecute=false,CreateNoWindow=true,
                 RedirectStandardOutput=true,RedirectStandardError=true,
                 StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8

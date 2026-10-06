@@ -32,7 +32,7 @@ def archive(name: str, files: list[pathlib.Path], base: pathlib.Path) -> pathlib
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             content = source.read_bytes()
-            if source.suffix != '.exe':
+            if source.suffix not in {'.exe', '.dll', '.pyd', '.bin', '.zip'}:
                 content = content.replace(b'\r\n', b'\n')
             if name.startswith("IndexTranslate-Windows-code-") and relative == "T8IndexTranslate.exe":
                 # v0.1.17 permits app/* but not a new root EXE. The updated
@@ -66,6 +66,13 @@ assets = [
     archive(f"IndexTranslate-Windows-code-v{VERSION}.zip", windows_files, windows),
     archive(f"IndexTranslate-Chrome-v{VERSION}.zip", files_under(ROOT / "standalone" / "chrome"), ROOT / "standalone" / "chrome"),
 ]
+windows_archive = assets[1]
+with zipfile.ZipFile(windows_archive) as handle:
+    entries = handle.infolist()
+    if (windows_archive.stat().st_size > 50 * 1024 * 1024 or len(entries) > 200
+            or sum(entry.file_size for entry in entries) > 50 * 1024 * 1024
+            or any(entry.file_size > 10 * 1024 * 1024 for entry in entries)):
+        raise ValueError('Windows update exceeds the compressed/expanded/file limits of existing updaters')
 (OUT / "SHA256SUMS.txt").write_text(
     "".join(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in assets), "utf-8"
 )

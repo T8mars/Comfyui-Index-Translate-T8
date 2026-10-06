@@ -4,7 +4,13 @@
 
 A local translation project built on [IndexTeam's Index-Translate](https://github.com/bilibili/Index-Translate). This repository contains three deliverables: an independent ComfyUI node, source updates for a standalone Windows bundle, and a Chrome web-page translation extension. **The ComfyUI node runs inference inside ComfyUI and does not connect to the Windows bundle.** The Chrome extension connects to the local Windows service.
 
-## Version 0.1.20
+## Version 0.1.21
+
+[Download v0.1.21](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.21). Fixes convolution keyword compatibility, legacy Qwen cache / CPU reference paths, private bundled compiler discovery before FLA import, and user/global Python package contamination. The full Windows bundle includes the required tools; first warmup generates GPU-specific caches automatically, without requiring Mamba, Visual Studio or a system CUDA Toolkit. Optional acceleration failures verify ordinary inference fallback. Precision and memory checks use the current GPU. Existing accelerated bundles (0.1.17–0.1.20) can stop the service and run `update.cmd`; models and settings are preserved. See [validation and hardware scope](docs/releases/v0.1.21.md).
+
+This release also fixes local speech resets including WinError 10054, replays committed subtitle events after a safe retry, and reports actual worker exits. The full offline bundle preinstalls multi-architecture CUDA, independent CPU and private VC++ libraries. After an older accelerated bundle's code update, the first speech load downloads and verifies the separate approximately 149 MiB native asset once. This first download needs internet; subsequent loads do not. No user compilation is required. Unsupported GPU/driver combinations select CPU before inference; CPU recognition is slower. The existing runtime and weights are preserved.
+
+### Desktop and browser features from 0.1.20
 
 [Download the v0.1.20 release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20). This includes the previous 0.1.18/0.1.19 fixes and the new desktop launcher, warmup status, and speech-start feedback.
 

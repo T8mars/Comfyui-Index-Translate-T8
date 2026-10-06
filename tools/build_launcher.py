@@ -7,8 +7,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 # CMD's UTF-8 parser needs Windows line endings, especially around Chinese echo.
-cmd = ROOT/'standalone/windows/start.cmd'
-cmd.write_bytes(('\r\n'.join(cmd.read_text('utf-8').splitlines())+'\r\n').encode('utf-8'))
+for cmd in (ROOT/'standalone/windows').glob('*.cmd'):
+    cmd.write_bytes(('\r\n'.join(cmd.read_text('utf-8').splitlines())+'\r\n').encode('utf-8'))
 BUILD = ROOT/'.build/launcher'
 BUILD.mkdir(parents=True,exist_ok=True)
 compiler = Path(os.environ.get('WINDIR','C:/Windows'))/'Microsoft.NET/Framework64/v4.0.30319/csc.exe'

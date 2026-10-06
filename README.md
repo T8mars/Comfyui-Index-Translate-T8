@@ -4,7 +4,13 @@
 
 基于 [IndexTeam 的 Index-Translate](https://github.com/bilibili/Index-Translate) 的本地翻译项目。此仓库包含三个交付物：独立 ComfyUI 节点、Windows 本地整合包的代码更新、Chrome 网页自动翻译扩展。**ComfyUI 节点直接在 ComfyUI 环境推理，不连接 Windows 整合包**；Chrome 扩展连接本机整合包服务。
 
-## 0.1.20 更新与下载
+## 0.1.21 更新与下载
+
+[下载 v0.1.21 修复版](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.21)：修复 `hidden_states` / `x=` 内核调用、旧 Qwen 缓存与 CPU 回退、包内编译工具定位，以及外部 Python 包混入导致的 FastAPI / Transformers 报错。完整 Windows 包自带所需工具，首次预热自动生成 GPU 缓存，无需另装 Mamba、Visual Studio 或系统 CUDA Toolkit。可选加速失败会验证普通推理回退；当前 GPU 的精度和显存检查也已修正。详见 [修复及实测范围](docs/releases/v0.1.21.md)。已有 0.1.17–0.1.20 加速包关闭服务后运行 `update.cmd`，模型及原配置保留。
+
+语音翻译的 WinError 10054 也在此版修复：短暂断线安全重试、恢复最后一次已提交字幕；原生进程崩溃会报告原因。完整离线包预装多架构 CUDA、独立 CPU 和标准 VC++ 库。已有加速包代码更新后，首次加载语音模型会自动联网获取并校验约 149 MiB 的独立原生资源，无需用户编译；后续不再下载。驱动或架构不符合要求时在推理前选择 CPU，速度较慢。完整 Python 和模型权重仍另行提供。
+
+### 0.1.20 的界面与启动器功能
 
 [下载 v0.1.20 Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.20)。此次包含此前 0.1.18 / 0.1.19 的 BUG 修复，以及新启动器、预热状态和声音翻译反馈。
 

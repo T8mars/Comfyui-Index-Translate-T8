@@ -1,12 +1,18 @@
 # Index Translate Windows 本地整合包
 
+0.1.21 修复启动字幕 / 声音翻译时的 WinError 10054：短暂连接重置安全重试一次，保留语音进程及已提交的字幕事件；进程退出、显存不足、DLL 和显卡不兼容会分别报告具体原因。语音组件提供多架构 CUDA、独立 CPU 和标准 VC++ 库，均已预编译。完整离线包预装这些库；已有 0.1.17–0.1.20 包代码更新后，第一次加载语音模型会自动下载独立的约 149 MiB 原生资源，校验 SHA256 后原子安装，之后不再下载。下载时需要联网，无需安装编译器。GPU 驱动不符合要求时会在启动推理前选择 CPU，并在模型页提示速度较慢。CUDA 语音要求驱动 API 至少 12.8；CPU 原生库基线为 x64 SSE4.2。模型权重和 Python 依赖锁保持原样。
+
+0.1.21 兼容与可移植性修复：启动器、CMD、服务及语音 worker 隔离系统 / 用户 Python 包，避免 FastAPI / Transformers 版本被外部依赖替换。加速器兼容 `x=` 卷积参数；旧版 Qwen 缓存使用完整 PyTorch 回退，不注入新版融合或静态缓存。Windows 从实际私有 Triton 目录定位已打包的 TinyCC 和 CUDA 工具，并在 Qwen / FLA 导入之前配置当前进程。完整包不要求用户安装 mamba-ssm、Visual Studio 或系统 CUDA Toolkit；首次加速预热仍会自动生成与本机 GPU 匹配的缓存。可选内核失败回退普通推理，编译失败后验证普通翻译确实可用；显存不足及致命 CUDA 错误仍明确报告。
+
+CUDA `auto` 按当前 GPU 的能力与空闲显存选档位；无原生 BF16 的旧 GPU 默认官方模型 FP32，NF4 使用 FP16 计算。固定 BF16 / CONVROT INT8 档位要求 NVIDIA Ampere 或更新的 GPU，旧显卡会在加载前得到具体提示。硬件兼容门控已测；实际加速硬件验证为 RTX 5090 Laptop，其他 GPU 未逐一实测。
+
 0.1.20 本地修复：双击 `T8IndexTranslate.exe` 或 `start.cmd` 后保留一个任务栏窗口，显示 **By T8star**，支持重新打开网页和停止服务。点击窗口关闭按钮或「停止服务并退出」会先取消任务、关闭语音 worker、卸载翻译模型并等待本整合包的服务退出；加载或编译中关闭可能需要等待。重复启动复用同一窗口与服务。原有模型路径、配对、设置与任务数据保留。
 
 「加载并预热」旁新增持续状态：排队、模型加载/编译耗时、核实结果、已完成（绿色）或具体错误；按钮完成后恢复「重新预热」。支持取消和失败重试，刷新页面继续追踪同一个任务。超过五分钟仍保持追踪；网络暂时中断后恢复，不把灰色按钮当作完成状态。模型卸载后显示未加载。常规 eager 回退会明确说明，不能当作编译加速成功。
 
 EXE 运行时禁止覆盖自身；手动更新前请关闭启动器窗口，再运行 `update.cmd`。CMD 首先检查更新，再打开 EXE。直接打开 EXE 时，如果发现更新需要更换活动的 EXE 文件，会保留当前版本；关闭后运行 CMD 可在打开窗口前更新。
 
-从已有 0.1.17 加速整合包更新：关闭服务后运行 `update.cmd`，或下载 Release 的 `IndexTranslate-Windows-code-v0.1.20.zip`，直接覆盖解压到包含 `runtime` 的原整合包目录，然后运行 `start.cmd`。代码包内 EXE 位于 `app/T8IndexTranslate.exe` 以兼容旧更新器，启动时自动放到根目录，无需改名或搬文件。`runtime`、模型与 `data` 保留。0.1.16 及更旧包仍需升级完整运行时才能获得当前加速/语音能力。
+从已有 0.1.17–0.1.20 加速整合包更新：关闭服务后运行 `update.cmd`，或下载 Release 的 `IndexTranslate-Windows-code-v0.1.21.zip`，直接覆盖解压到包含 `runtime` 的原整合包目录，然后运行 `start.cmd`。更新包包含预编译语音库；代码包内 EXE 位于 `app/T8IndexTranslate.exe` 以兼容旧更新器，启动时自动放到根目录，无需改名或搬文件。`runtime`、模型与 `data` 保留。0.1.16 及更旧包仍需升级完整运行时才能获得当前加速/语音能力。
 
 0.1.19 本地修复：网络提前断开时保留模型下载进度并续传；损坏量化清单返回明确说明。撤销 Chrome 配对会取消相关翻译与语音，保留 WebUI 任务；加载中撤销也会收尾。语音结束响应支持同 owner、同音频水位重试，终态缓存限 64 项 / 5 分钟。
 
@@ -20,7 +26,7 @@ EXE 运行时禁止覆盖自身；手动更新前请关闭启动器窗口，再�
 
 视频 API 支持当前字幕优先、正文逐段让出、低优先级未来字幕预译和长轮询立即交付。扩展缓存按模型实际 revision、服务身份、精度、语言、术语和提示词隔离。无字幕模式仍需等待 ASR 确认语句；20 秒本地语音样例中，320 ms 传输没有持续积压，共卡翻译约 0.5–0.6 秒，不代表从声音开始的总延迟。
 
-解压作者分享的完整包到可写目录，双击 `T8IndexTranslate.exe` 或 `start.cmd`。浏览器打开 http://127.0.0.1:8098 后即可翻译，启动器窗口保留在任务栏供退出。完整包包含私有 Python、推理依赖和完整官方 2B 模型，无需系统 Python 或 ComfyUI；中文、空格路径和跨盘搬迁已实测。GitHub 仅提供代码更新 ZIP，不能单独运行。
+解压完整包到可写目录，双击 `T8IndexTranslate.exe` 或 `start.cmd`。浏览器打开 http://127.0.0.1:8098 后即可翻译，启动器窗口保留在任务栏供退出。包内包含私有 Python、推理依赖和完整官方 2B 模型，无需系统 Python 或 ComfyUI；中文、空格路径和跨盘搬迁已实测。本机仅保留一份完整整合包，更新原地同步，不另建大型 Windows ZIP。
 
 **By T8star-Aix** · [B站](https://space.bilibili.com/385085361) · [YouTube](https://www.youtube.com/@T8star-Aix/)。启动时每天最多检查一次 [GitHub Release](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases) 并自动安装较新的代码包；网络不可用时照常启动。更新只覆盖应用代码，保留 `runtime/`、`models/` 和 `data/`。运行中的服务不会被更新打断；可先执行 `stop.cmd`，再运行 `update.cmd` 立即检查并安装。版本升级如需改变 Python 依赖，请获取作者另行分享的新完整包。
 
@@ -77,7 +83,7 @@ EXE 运行时禁止覆盖自身；手动更新前请关闭启动器窗口，再�
 完整离线包首次启动即可使用。以下命令启用外部网络连接阻断，下载功能在此模式不可用：
 
 ```powershell
-.\runtime\python.exe .\run.py --offline --port 8098
+.\runtime\python.exe -E -s -X utf8 .\run.py --offline --port 8098
 ```
 
 直接运行 `run.py` 时在该终端按 Ctrl+C 停止；启动器只管理它自身记录的服务。完整性清单见 `FILE-MANIFEST.json`，精确 Python 依赖见 `requirements.lock.txt`，许可证见 `LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.json` 和 runtime 内各包的许可证。
