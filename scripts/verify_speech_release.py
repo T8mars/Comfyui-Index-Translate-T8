@@ -10,7 +10,12 @@ asset=manifest['release_asset']
 tag=asset['url'].split('/releases/download/',1)[1].split('/',1)[0]
 name=asset['name']
 repository='T8mars/Comfyui-Index-Translate-T8'
-release=json.loads(subprocess.check_output(['gh','api',f'repos/{repository}/releases/tags/{tag}']))
+pages=json.loads(subprocess.check_output(['gh','api','--paginate','--slurp',
+                                         f'repos/{repository}/releases?per_page=100']))
+# GitHub's by-tag endpoint omits drafts, even when the caller can list them.
+matches=[release for page in pages for release in page if release['tag_name']==tag]
+assert len(matches)==1, f'Expected one precreated release for {tag}; found {len(matches)}.'
+release=matches[0]
 remote=next(item for item in release['assets'] if item['name']==name)
 assert remote['size']==manifest['archive_bytes']
 assert remote['digest']=='sha256:'+manifest['archive_sha256']
