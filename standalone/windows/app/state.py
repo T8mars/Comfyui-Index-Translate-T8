@@ -9,6 +9,7 @@ import sqlite3
 import threading
 import time
 import traceback
+import logging
 import uuid
 from collections import Counter, OrderedDict, deque
 from pathlib import Path
@@ -452,6 +453,7 @@ class State:
                 if cleanup_error:
                     result['cleanup_error'] = cleanup_error
         except Exception as error:
+            logging.getLogger(__name__).exception('Translation job failed during %s', result.get('status'))
             result.update(status="failed", error=str(error)[:1800], error_code=type(error).__name__)
             traceback.clear_frames(error.__traceback__)
             cleanup_error = self.release_translator()

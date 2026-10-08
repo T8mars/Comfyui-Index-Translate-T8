@@ -4,6 +4,10 @@
 
 A local translation project built on [IndexTeam's Index-Translate](https://github.com/bilibili/Index-Translate). This repository contains three deliverables: an independent ComfyUI node, source updates for a standalone Windows bundle, and a Chrome web-page translation extension. **The ComfyUI node runs inference inside ComfyUI and does not connect to the Windows bundle.** The Chrome extension connects to the local Windows service.
 
+## Version 0.1.23: Windows native tool text decoding
+
+[Download v0.1.23](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.23). Handles native compiler/version output and PTX diagnostic logs encoded in the Windows ANSI/OEM code pages, including reproduced `utf-8 ... 0xcb in position 9` failures. Model, cache and weight validation remain strict; no dependency files or system encoding settings are changed. Stop the standalone launcher/service, run `update.cmd`, and warm up again. Models, pairing and settings are retained. Failed jobs now record their full traceback in `data/service.log`. See [release notes](docs/releases/v0.1.23.md).
+
 ## Version 0.1.22: Chinese SRT to English SRT
 
 [Download v0.1.22](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.22). The independent ComfyUI `IndexTranslateSRT` node and the Windows **Subtitle translation** tab translate cue text while retaining original SRT numbers and timestamps. Chinese (`zh`) to English (`en`) is the default; bilingual output is optional. Supports UTF-8, UTF-16 with BOM and GB18030, up to 1 MiB / 5,000 cues. Complete results export as UTF-8 BOM SRT; cancelled, failed or truncated work does not produce a partial file.

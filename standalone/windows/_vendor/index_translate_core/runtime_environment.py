@@ -77,4 +77,6 @@ Missing optional tools are reported; ordinary reference inference is allowed.
             result["changes"].append("CUDA_PATH")
         result["cuda_tools"] = os.environ.get("CUDA_PATH") or os.environ.get("CUDA_HOME")
         result.update(_python_development_files())
+        from .native_tool_text import prepare_native_tool_text
+        result['native_tool_text'] = prepare_native_tool_text()
         return result

@@ -4,6 +4,10 @@
 
 基于 [IndexTeam 的 Index-Translate](https://github.com/bilibili/Index-Translate) 的本地翻译项目。此仓库包含三个交付物：独立 ComfyUI 节点、Windows 本地整合包的代码更新、Chrome 网页自动翻译扩展。**ComfyUI 节点直接在 ComfyUI 环境推理，不连接 Windows 整合包**；Chrome 扩展连接本机整合包服务。
 
+## 0.1.23 Windows 预热编码兼容
+
+[下载 v0.1.23](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.23)。修复可复现的 Windows 原生工具输出编码错误（例如 `utf-8 ... 0xcb in position 9`）：工具版本、编译错误和 PTX 日志支持 UTF-8 与本机 ANSI / OEM 编码；模型、缓存、权重保持严格校验。已有加速整合包关闭启动器与服务，运行 `update.cmd` 后重新预热，无需更换系统语言、改目录或重下载模型。失败时完整堆栈保存在 `data/service.log`。详见 [发布说明](docs/releases/v0.1.23.md)。
+
 ## 0.1.22 中文 SRT → 英文 SRT
 
 [下载 v0.1.22](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.22)。ComfyUI 新增 **Index Translate SRT 字幕翻译** 节点，Windows 新增 **字幕翻译** 页：导入中文 SRT，默认 `zh` → `en`，仅翻译正文，保留原序号及时间轴。支持 UTF-8 / UTF-16 BOM / GB18030，最多 1 MiB / 5000 条；可选双语，失败、截断或取消不会导出不完整文件。节点保存到 ComfyUI `output/IndexTranslate/`，整合包完成后下载 SRT。
