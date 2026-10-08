@@ -38,12 +38,11 @@ def torch_cuda_architecture_supported(capability, architectures) -> bool:
 
 
 def _transformer_classes(reference_only=False):
-    if not reference_only:
-        from transformers import AutoTokenizer, Qwen3_5ForConditionalGeneration
-        return AutoTokenizer, Qwen3_5ForConditionalGeneration
-    # Optional FLA probes CUDA during import, even when the requested model is
-    # on CPU. Keep that import out of this thread on an unsupported GPU, then
-    # select the complete HF reference implementation. No package files change.
+    # HF imports optional kernels while defining the model. Their compiler/DLL
+    # errors can escape before enable_fast_kernels gets a chance to fall back.
+    # Always import the complete reference definitions first; the adapter then
+    # activates acceleration inside its guarded initialization. Cached working
+    # adapters stay installed unless reference_only is explicitly requested.
     from transformers import utils
     from transformers.utils import import_utils
     from transformers import integrations
@@ -52,7 +51,7 @@ def _transformer_classes(reference_only=False):
     class NoFla(importlib.abc.MetaPathFinder):
         def find_spec(self, fullname, path=None, target=None):
             if threading.get_ident() == owner and fullname.split('.')[0] in {'fla', 'causal_conv1d'}:
-                raise ModuleNotFoundError('FLA disabled for unsupported CUDA architecture', name=fullname)
+                raise ModuleNotFoundError('Optional kernels deferred until guarded initialization', name=fullname)
     finder = NoFla()
     with _reference_import_lock:
         previous = [(module, name, getattr(module, name)) for module in (utils, import_utils)
@@ -75,8 +74,9 @@ def _transformer_classes(reference_only=False):
             sys.meta_path.insert(0, finder)
             from transformers import AutoTokenizer, Qwen3_5ForConditionalGeneration
             from transformers.models.qwen3_5 import modeling_qwen3_5
-            from .acceleration import _use_torch_reference
-            _use_torch_reference(modeling_qwen3_5)
+            if reference_only:
+                from .acceleration import _use_torch_reference
+                _use_torch_reference(modeling_qwen3_5)
         finally:
             sys.meta_path.remove(finder)
             for module, name, original in previous:
@@ -300,7 +300,8 @@ class LocalTranslator:
         import torch
         report = getattr(self, 'acceleration_info', {})
         if self.precision != 'convrot-int8' or self.device != 'cuda' or not report.get('enabled'):
-            return {'compiled': False, 'reason': 'using eager runtime'}
+            reason = report.get('reason') if not report.get('enabled') else None
+            return {'compiled': False, 'reason': 'using eager runtime' + (': ' + reason if reason else '')}
         if tuple(int(v) for v in torch.__version__.split('+')[0].split('.')[:2]) < (2, 10):
             return {'compiled': False, 'reason': 'compile profile requires torch 2.10 or later'}
         from .acceleration import supports_static_qwen_cache

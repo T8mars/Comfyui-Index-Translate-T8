@@ -4,6 +4,10 @@
 
 基于 [IndexTeam 的 Index-Translate](https://github.com/bilibili/Index-Translate) 的本地翻译项目。此仓库包含三个交付物：独立 ComfyUI 节点、Windows 本地整合包的代码更新、Chrome 网页自动翻译扩展。**ComfyUI 节点直接在 ComfyUI 环境推理，不连接 Windows 整合包**；Chrome 扩展连接本机整合包服务。
 
+## 0.1.24 缺少 C 编译器时继续加载
+
+[下载 v0.1.24](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.24)。修复可选内核在模型导入阶段触发 `Failed to find C compiler` 后无法回退的问题。先导入完整参考实现，再受控启用加速；缺少工具时仍可翻译，界面显示普通推理及原因。完整整合包自动使用内置 TinyCC / CUDA 工具，正常加速保留，无需用户设置 CC 或安装 Visual Studio。整合包关闭服务后运行 `update.cmd`；独立节点更新后重启 ComfyUI。模型、路径、配对和设置保留。详见 [发布说明](docs/releases/v0.1.24.md)。
+
 ## 0.1.23 Windows 预热编码兼容
 
 [下载 v0.1.23](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.23)。修复可复现的 Windows 原生工具输出编码错误（例如 `utf-8 ... 0xcb in position 9`）：工具版本、编译错误和 PTX 日志支持 UTF-8 与本机 ANSI / OEM 编码；模型、缓存、权重保持严格校验。已有加速整合包关闭启动器与服务，运行 `update.cmd` 后重新预热，无需更换系统语言、改目录或重下载模型。失败时完整堆栈保存在 `data/service.log`。详见 [发布说明](docs/releases/v0.1.23.md)。

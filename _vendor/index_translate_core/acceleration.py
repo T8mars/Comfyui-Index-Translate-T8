@@ -173,6 +173,12 @@ def enable_fast_kernels() -> dict:
                            'reason': 'legacy Qwen API: using built-in PyTorch inference'}
                 _use_torch_reference(qwen)
                 return dict(_report)
+            # Probe the optional driver before FLA imports/cache device state.
+            # A missing C compiler must select the reference implementation
+            # here, rather than leaving FLA initialized with a CPU backend.
+            if torch.cuda.is_available():
+                from triton.runtime import driver
+                driver.active.get_current_target()
             from fla.modules.conv import causal_conv1d
             from fla.modules.conv.triton.kernels import causal_conv1d_update
             from fla.ops.gated_delta_rule import chunk_gated_delta_rule, fused_recurrent_gated_delta_rule

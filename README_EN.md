@@ -4,6 +4,10 @@
 
 A local translation project built on [IndexTeam's Index-Translate](https://github.com/bilibili/Index-Translate). This repository contains three deliverables: an independent ComfyUI node, source updates for a standalone Windows bundle, and a Chrome web-page translation extension. **The ComfyUI node runs inference inside ComfyUI and does not connect to the Windows bundle.** The Chrome extension connects to the local Windows service.
 
+## Version 0.1.24: load models without an optional C compiler
+
+[Download v0.1.24](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.24). Fixes optional kernels failing during Qwen model import, before fallback could run. Missing compiler/toolkit support now uses ordinary PyTorch inference and reports the reason. Intact Windows bundles automatically select their shipped TinyCC/CUDA tools and retain acceleration; users do not need to set CC or install Visual Studio. Stop the standalone launcher/service, run `update.cmd`, and load again. For the independent node, update it and restart ComfyUI. Reference inference can be slower. Models/settings/pairing are retained; no host dependency files are modified. See [release notes](docs/releases/v0.1.24.md).
+
 ## Version 0.1.23: Windows native tool text decoding
 
 [Download v0.1.23](https://github.com/T8mars/Comfyui-Index-Translate-T8/releases/tag/v0.1.23). Handles native compiler/version output and PTX diagnostic logs encoded in the Windows ANSI/OEM code pages, including reproduced `utf-8 ... 0xcb in position 9` failures. Model, cache and weight validation remain strict; no dependency files or system encoding settings are changed. Stop the standalone launcher/service, run `update.cmd`, and warm up again. Models, pairing and settings are retained. Failed jobs now record their full traceback in `data/service.log`. See [release notes](docs/releases/v0.1.23.md).

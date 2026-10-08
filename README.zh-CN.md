@@ -1,5 +1,7 @@
 # ComfyUI Index Translate
 
+0.1.24 保护 Qwen 模型导入阶段，避免已安装但不完整的可选 FLA / causal-conv1d / Triton 在导入时因缺少 C 编译器而中断。节点在 ComfyUI 自身环境使用完整 PyTorch 参考实现；支持的完整加速环境继续启用可选内核，旧 HF API 使用内置参考实现。更新节点后重启 ComfyUI，无需手工设置 CC；普通推理速度可能较慢。不修改宿主 PyTorch、系统 SDK 或第三方包文件。
+
 0.1.23 新增 Windows 原生工具文本编码兼容，避免可选 Triton / PyTorch 编译探测将 GBK / 本机 ANSI、OEM 输出当作 UTF-8 读取。适配只作用于工具文本，模型与缓存保持原校验；不修改宿主依赖文件或系统编码。节点仍独立使用 ComfyUI 的 Python。
 
 0.1.22 新增 **Index Translate SRT 字幕翻译** 节点。默认中文 `zh` → 英文 `en`：粘贴中文 SRT，或在 `srt_file` 填写现有字幕文件路径（有值时优先读取文件，相对路径位于 ComfyUI `input`）。字幕序号和时间轴由程序保留，只翻译正文；支持 UTF-8、UTF-16 BOM、GB18030，最多 1 MiB / 5000 条。
